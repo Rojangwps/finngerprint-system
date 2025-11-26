@@ -1,0 +1,173 @@
+<!-- [FRONTEND] Admin: view user details -->
+
+{% extends 'base.html' %}
+
+<!-- Admin: View user details - Plain HTML -->
+{% extends 'base.html' %}
+
+{% block title %}User Details - {{ user.username }}{% endblock %}
+
+{% block content %}
+<h2>User Details</h2>
+
+<h3>Account Information</h3>
+<table border="1" cellpadding="5">
+    <tr>
+        <td><strong>ID:</strong></td>
+        <td>{{ user.id }}</td>
+    </tr>
+    <tr>
+        <td><strong>Username:</strong></td>
+        <td>{{ user.username }}</td>
+    </tr>
+    <tr>
+        <td><strong>Role:</strong></td>
+        <td>{{ user.role }}</td>
+    </tr>
+    <tr>
+        <td><strong>Status:</strong></td>
+        <td>{% if user.is_active %}<strong>Active</strong>{% else %}<strong>Inactive</strong>{% endif %}</td>
+    </tr>
+    <tr>
+        <td><strong>Verified:</strong></td>
+        <td>
+            {% if user.is_verified %}
+                <strong>Yes</strong>
+                {% if user.verified_at %}<br>Verified on: {{ user.verified_at|date:"Y-m-d H:i" }}{% endif %}
+                {% if user.verified_by %}<br>Verified by: {{ user.verified_by.username }}{% endif %}
+            {% else %}
+                <strong>No - Pending Verification</strong>
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Created:</strong></td>
+        <td>{{ user.created_at|date:"Y-m-d H:i" }}</td>
+    </tr>
+</table>
+
+<h3>Personal Information</h3>
+<table border="1" cellpadding="5">
+    <tr>
+        <td><strong>Full Name:</strong></td>
+        <td>{{ user.first_name }} {{ user.middle_name|default:"" }} {{ user.last_name }} {{ user.suffix|default:"" }}</td>
+    </tr>
+    <tr>
+        <td><strong>Birthdate:</strong></td>
+        <td>{{ user.birthdate }}</td>
+    </tr>
+    <tr>
+        <td><strong>Sex:</strong></td>
+        <td>{% if user.sex == 'M' %}Male{% else %}Female{% endif %}</td>
+    </tr>
+    <tr>
+        <td><strong>Religion:</strong></td>
+        <td>{{ user.religion }}</td>
+    </tr>
+    <tr>
+        <td><strong>Civil Status:</strong></td>
+        <td>{{ user.civil_status }}</td>
+    </tr>
+    <tr>
+        <td><strong>Nationality:</strong></td>
+        <td>{{ user.nationality }}</td>
+    </tr>
+</table>
+
+<h3>Contact Information</h3>
+<table border="1" cellpadding="5">
+    <tr>
+        <td><strong>Address:</strong></td>
+        <td>{{ user.home_address }}</td>
+    </tr>
+    <tr>
+        <td><strong>Contact Number:</strong></td>
+        <td>{{ user.contact_number }}</td>
+    </tr>
+</table>
+
+<h3>Employment Information</h3>
+<table border="1" cellpadding="5">
+    <tr>
+        <td><strong>Educational Attainment:</strong></td>
+        <td>{{ user.educational_attainment }}</td>
+    </tr>
+    <tr>
+        <td><strong>Employment Status:</strong></td>
+        <td>{{ user.employment_status }}</td>
+    </tr>
+    <tr>
+        <td><strong>Occupation:</strong></td>
+        <td>{{ user.occupation }}</td>
+    </tr>
+</table>
+
+<h3>Emergency Contact</h3>
+<table border="1" cellpadding="5">
+    <tr>
+        <td><strong>Name:</strong></td>
+        <td>{{ user.emergency_contact_name }}</td>
+    </tr>
+    <tr>
+        <td><strong>Contact Number:</strong></td>
+        <td>{{ user.emergency_contact_number }}</td>
+    </tr>
+    <tr>
+        <td><strong>Address:</strong></td>
+        <td>{{ user.emergency_contact_address }}</td>
+    </tr>
+</table>
+
+<h3>Valid ID</h3>
+<p><a href="{{ MEDIA_URL }}{{ user.valid_id_path }}" target="_blank">View Valid ID</a></p>
+
+<h3>Recent Activity</h3>
+<table border="1" cellpadding="5">
+    <thead>
+        <tr>
+            <th>Action</th>
+            <th>Description</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in recent_logs %}
+        <tr>
+            <td>{{ log.action_type }}</td>
+            <td>{{ log.description }}</td>
+            <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No activity yet</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<hr>
+
+<h3>Admin Actions</h3>
+<p>
+    {% if not user.is_verified %}
+    <form method="post" action="{% url 'accounts:verify_user' user.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" onclick="return confirm('Verify this user?')">Verify User</button>
+    </form>
+    {% endif %}
+    
+    <form method="post" action="{% url 'accounts:toggle_user_status' user.id %}" style="display: inline;">
+        {% csrf_token %}
+        {% if user.is_active %}
+            <button type="submit" onclick="return confirm('Deactivate this user?')">Deactivate User</button>
+        {% else %}
+            <button type="submit" onclick="return confirm('Activate this user?')">Activate User</button>
+        {% endif %}
+    </form>
+    
+    <a href="{% url 'accounts:admin_reset_password' user.id %}"><button type="button">Reset Password</button></a>
+</p>
+
+<br>
+<a href="{% url 'accounts:user_list' %}">← Back to User List</a>
+{% endblock %}

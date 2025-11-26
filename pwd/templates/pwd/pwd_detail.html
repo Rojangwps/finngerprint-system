@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}PWD - {{ pwd.unique_id }}{% endblock %}
+
+{% block content %}
+<style>
+/* Dashboard-style PWD Profile */
+.profile-card {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 25px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.profile-card h2 {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.profile-section {
+    margin-bottom: 25px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 10px;
+    background: #f9f9f9;
+}
+
+.profile-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.profile-section table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.profile-section table td {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+}
+
+.profile-section table td:first-child {
+    font-weight: 600;
+    width: 35%;
+    background: #ecf0f1;
+}
+
+img.pwd-photo {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background-color: #3498db;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 3px 0;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button.delete-btn {
+    background-color: #e74c3c;
+}
+
+button.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.actions {
+    margin-top: 15px;
+}
+</style>
+
+<div class="profile-card">
+    <h2>PWD Profile: {{ pwd.unique_id }}</h2>
+
+    <p>
+        <strong>Status:</strong> 
+        {% if pwd.is_active %}
+            <span style="color: green;">Active</span>
+        {% else %}
+            <span style="color: red;">Inactive (Archived)</span>
+        {% endif %}
+    </p>
+
+    {% if pwd.photo_path %}
+    <div class="profile-section">
+        <h3>Photo</h3>
+        <img src="{{ MEDIA_URL }}{{ pwd.photo_path }}" alt="PWD Photo" class="pwd-photo">
+    </div>
+    {% endif %}
+
+    <div class="profile-section">
+        <h3>Personal Information</h3>
+        <table>
+            <tr><td>Unique ID</td><td>{{ pwd.unique_id }}</td></tr>
+            <tr><td>Full Name</td><td>{{ pwd.get_full_name }}</td></tr>
+            <tr><td>Birthdate</td><td>{{ pwd.birthdate }} (Age: {{ pwd.get_age }})</td></tr>
+            <tr><td>Sex</td><td>{% if pwd.sex == 'M' %}Male{% else %}Female{% endif %}</td></tr>
+            <tr><td>Civil Status</td><td>{{ pwd.civil_status }}</td></tr>
+            <tr><td>Barangay</td><td>{{ pwd.barangay }}</td></tr>
+            <tr><td>Address</td><td>{{ pwd.address }}</td></tr>
+            <tr><td>Contact Number</td><td>{{ pwd.contact_number }}</td></tr>
+            <tr><td>Religion</td><td>{{ pwd.religion }}</td></tr>
+            <tr><td>Nationality</td><td>{{ pwd.nationality }}</td></tr>
+        </table>
+    </div>
+
+    <div class="profile-section">
+        <h3>Household Information</h3>
+        <table>
+            <tr><td>Educational Attainment</td><td>{{ pwd.educational_attainment }}</td></tr>
+            <tr><td>Employment Status</td><td>{{ pwd.employment_status }}</td></tr>
+            <tr><td>Occupation</td><td>{{ pwd.occupation|default:"-" }}</td></tr>
+            <tr><td>Type of Employment</td><td>{{ pwd.type_of_employment|default:"-" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="profile-section">
+        <h3>Socio-Economic Information</h3>
+        <table>
+            <tr><td>Household Income</td><td>{% if pwd.household_income %}₱{{ pwd.household_income }}{% else %}-{% endif %}</td></tr>
+            <tr><td>Household Size</td><td>{{ pwd.household_size|default:"-" }}</td></tr>
+            <tr><td>Living Situation</td><td>{{ pwd.living_situation|default:"-" }}</td></tr>
+            <tr><td>Housing Type</td><td>{{ pwd.housing_type|default:"-" }}</td></tr>
+            <tr><td>Guardian Name</td><td>{{ pwd.guardian_name }}</td></tr>
+            <tr><td>Guardian Contact Number</td><td>{{ pwd.guardian_contact }}</td></tr>
+        </table>
+    </div>
+
+    <div class="profile-section">
+        <h3>Medical Information</h3>
+        <table>
+            <tr><td>Disability Type</td><td>{{ pwd.disability_type }}</td></tr>
+            <tr><td>Degree of Disability</td><td>{{ pwd.degree_of_disability }}</td></tr>
+            <tr><td>Cause of Disability</td><td>{{ pwd.cause_of_disability|default:"-" }}</td></tr>
+            <tr><td>Date Diagnosed</td><td>{{ pwd.date_diagnosed|default:"-" }}</td></tr>
+            <tr><td>Assistive Devices</td><td>{{ pwd.assistive_devices|default:"-" }}</td></tr>
+            <tr><td>Medication</td><td>{{ pwd.medication|default:"-" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="profile-section">
+        <h3>Other Information</h3>
+        <table>
+            <tr><td>PhilHealth Number</td><td>{{ pwd.philhealth_number|default:"-" }}</td></tr>
+            <tr><td>SSS/GSIS Number</td><td>{{ pwd.sss_gsis_number|default:"-" }}</td></tr>
+            <tr><td>Skills/Hobbies</td><td>{{ pwd.skills_hobbies|default:"-" }}</td></tr>
+            <tr><td>Organization Membership</td><td>{{ pwd.organization_membership|default:"-" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="profile-section">
+        <h3>Emergency Contact Information</h3>
+        <table>
+            <tr><td>Name</td><td>{{ pwd.emergency_contact_name }}</td></tr>
+            <tr><td>Number</td><td>{{ pwd.emergency_contact_number }}</td></tr>
+            <tr><td>Address</td><td>{{ pwd.emergency_contact_address }}</td></tr>
+        </table>
+    </div>
+
+    <div class="profile-section">
+        <h3>Supporting Documents</h3>
+        {% if documents %}
+        <table>
+            <thead>
+                <tr>
+                    <td>File Name</td>
+                    <td>Size</td>
+                    <td>Uploaded</td>
+                    <td>Actions</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td>{{ doc.file_name }}</td>
+                    <td>{{ doc.get_file_size_display }}</td>
+                    <td>{{ doc.uploaded_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <a href="{{ MEDIA_URL }}{{ doc.file_path }}" target="_blank">Download</a>
+                        |
+                        <form method="post" action="{% url 'pwd:pwd_delete_document' pwd.id doc.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="delete-btn" onclick="return confirm('Delete this document?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No documents uploaded.</p>
+        {% endif %}
+    </div>
+
+    <div class="profile-section">
+        <h3>Registration Information</h3>
+        <table>
+            <tr><td>Registered By</td><td>{% if pwd.created_by %}{{ pwd.created_by.username }}{% else %}-{% endif %}</td></tr>
+            <tr><td>Registered On</td><td>{{ pwd.created_at|date:"Y-m-d H:i" }}</td></tr>
+            <tr><td>Last Updated By</td><td>{% if pwd.updated_by %}{{ pwd.updated_by.username }}{% else %}-{% endif %}</td></tr>
+            <tr><td>Last Updated On</td><td>{{ pwd.updated_at|date:"Y-m-d H:i" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="actions">
+        <a href="{% url 'pwd:pwd_edit' pwd.id %}"><button>Edit Profile</button></a>
+        {% if is_admin %}
+        <form method="post" action="{% url 'pwd:pwd_toggle_status' pwd.id %}" style="display:inline;">
+            {% csrf_token %}
+            {% if pwd.is_active %}
+                <button onclick="return confirm('Archive this PWD? They will be marked as inactive.')">Archive PWD</button>
+            {% else %}
+                <button onclick="return confirm('Reactivate this PWD?')">Reactivate PWD</button>
+            {% endif %}
+        </form>
+        {% endif %}
+    </div>
+
+    <p style="margin-top: 15px;">
+        <a href="{% url 'pwd:pwd_list' %}">← Back to PWD List</a>
+    </p>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+<!-- [FRONTEND] Edit own profile form -->
+
+{% extends 'acc_base.html' %}
+
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<h2>Edit Profile</h2>
+<p>Username: <strong>{{ user.username }}</strong> (cannot be changed)</p>
+
+<form method="post" action="{% url 'accounts:edit_profile' %}">
+    {% csrf_token %}
+    
+    <fieldset>
+        <legend>Personal Information</legend>
+        
+        <div>
+            <label>First Name: *</label><br>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<p style="color: red;">{{ form.first_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Middle Name:</label><br>
+            {{ form.middle_name }}
+        </div>
+        
+        <div>
+            <label>Last Name: *</label><br>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<p style="color: red;">{{ form.last_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Suffix:</label><br>
+            {{ form.suffix }}
+        </div>
+        
+        <div>
+            <label>Birthdate: *</label><br>
+            {{ form.birthdate }}
+            {% if form.birthdate.errors %}<p style="color: red;">{{ form.birthdate.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Sex: *</label><br>
+            {{ form.sex }}
+            {% if form.sex.errors %}<p style="color: red;">{{ form.sex.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Religion: *</label><br>
+            {{ form.religion }}
+            {% if form.religion.errors %}<p style="color: red;">{{ form.religion.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Nationality: *</label><br>
+            {{ form.nationality }}
+            {% if form.nationality.errors %}<p style="color: red;">{{ form.nationality.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Civil Status: *</label><br>
+            {{ form.civil_status }}
+            {% if form.civil_status.errors %}<p style="color: red;">{{ form.civil_status.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Home Address: *</label><br>
+            {{ form.home_address }}
+            {% if form.home_address.errors %}<p style="color: red;">{{ form.home_address.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Contact Number: *</label><br>
+            {{ form.contact_number }}
+            {% if form.contact_number.errors %}<p style="color: red;">{{ form.contact_number.errors }}</p>{% endif %}
+        </div>
+    </fieldset>
+    
+    <fieldset>
+        <legend>Household Information</legend>
+        
+        <div>
+            <label>Educational Attainment: *</label><br>
+            {{ form.educational_attainment }}
+            {% if form.educational_attainment.errors %}<p style="color: red;">{{ form.educational_attainment.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Employment Status: *</label><br>
+            {{ form.employment_status }}
+            {% if form.employment_status.errors %}<p style="color: red;">{{ form.employment_status.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Occupation: *</label><br>
+            {{ form.occupation }}
+            {% if form.occupation.errors %}<p style="color: red;">{{ form.occupation.errors }}</p>{% endif %}
+        </div>
+    </fieldset>
+    
+    <fieldset>
+        <legend>Emergency Contact</legend>
+        
+        <div>
+            <label>Contact Name: *</label><br>
+            {{ form.emergency_contact_name }}
+            {% if form.emergency_contact_name.errors %}<p style="color: red;">{{ form.emergency_contact_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Contact Number: *</label><br>
+            {{ form.emergency_contact_number }}
+            {% if form.emergency_contact_number.errors %}<p style="color: red;">{{ form.emergency_contact_number.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Contact Address: *</label><br>
+            {{ form.emergency_contact_address }}
+            {% if form.emergency_contact_address.errors %}<p style="color: red;">{{ form.emergency_contact_address.errors }}</p>{% endif %}
+        </div>
+    </fieldset>
+    
+    {% if form.non_field_errors %}
+        <p style="color: red;">{{ form.non_field_errors }}</p>
+    {% endif %}
+    
+    <div>
+        <button type="submit">Save Changes</button>
+        <a href="{% url 'accounts:profile' %}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

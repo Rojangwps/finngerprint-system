@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit PWD - {{ pwd.unique_id }}{% endblock %}
+
+{% block content %}
+<h2>Edit PWD Profile</h2>
+<p><strong>PWD ID:</strong> {{ pwd.unique_id }} (cannot be changed)</p>
+
+<form method="post" action="{% url 'pwd:pwd_edit' pwd.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <!-- Section 1: Personal Information -->
+    <fieldset>
+        <legend>Section 1: Personal Information</legend>
+        
+        <div>
+            <label>First Name: *</label><br>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<p style="color: red;">{{ form.first_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Middle Name:</label><br>
+            {{ form.middle_name }}
+        </div>
+        
+        <div>
+            <label>Last Name: *</label><br>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<p style="color: red;">{{ form.last_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Suffix:</label><br>
+            {{ form.suffix }}
+        </div>
+        
+        <div>
+            <label>Birthdate: *</label><br>
+            {{ form.birthdate }}
+            {% if form.birthdate.errors %}<p style="color: red;">{{ form.birthdate.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Sex: *</label><br>
+            {{ form.sex }}
+        </div>
+        
+        <div>
+            <label>Civil Status: *</label><br>
+            {{ form.civil_status }}
+        </div>
+        
+        <div>
+            <label>Barangay: *</label><br>
+            {{ form.barangay }}
+            {% if form.barangay.errors %}<p style="color: red;">{{ form.barangay.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Complete Address: *</label><br>
+            {{ form.address }}
+            {% if form.address.errors %}<p style="color: red;">{{ form.address.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Contact Number: *</label><br>
+            {{ form.contact_number }}
+            {% if form.contact_number.errors %}<p style="color: red;">{{ form.contact_number.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Religion: *</label><br>
+            {{ form.religion }}
+            {% if form.religion.errors %}<p style="color: red;">{{ form.religion.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Nationality: *</label><br>
+            {{ form.nationality }}
+            {% if form.nationality.errors %}<p style="color: red;">{{ form.nationality.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Photo (leave empty to keep current):</label><br>
+            {% if pwd.photo_path %}
+                <p>Current: <a href="{{ MEDIA_URL }}{{ pwd.photo_path }}" target="_blank">View Photo</a></p>
+            {% endif %}
+            {{ form.photo }}
+            <p><em>Max 5MB. JPG, PNG accepted.</em></p>
+        </div>
+    </fieldset>
+    
+    <!-- Section 2: Household Information -->
+    <fieldset>
+        <legend>Section 2: Household Information</legend>
+        
+        <div>
+            <label>Educational Attainment: *</label><br>
+            {{ form.educational_attainment }}
+        </div>
+        
+        <div>
+            <label>Employment Status: *</label><br>
+            {{ form.employment_status }}
+        </div>
+        
+        <div>
+            <label>Occupation:</label><br>
+            {{ form.occupation }}
+        </div>
+        
+        <div>
+            <label>Type of Employment:</label><br>
+            {{ form.type_of_employment }}
+        </div>
+    </fieldset>
+    
+    <!-- Section 3: Socio-Economic Information -->
+    <fieldset>
+        <legend>Section 3: Socio-Economic Information</legend>
+        
+        <div>
+            <label>Household Monthly Income:</label><br>
+            {{ form.household_income }}
+        </div>
+        
+        <div>
+            <label>Household Size:</label><br>
+            {{ form.household_size }}
+        </div>
+        
+        <div>
+            <label>Living Situation:</label><br>
+            {{ form.living_situation }}
+        </div>
+        
+        <div>
+            <label>Housing Type:</label><br>
+            {{ form.housing_type }}
+        </div>
+        
+        <div>
+            <label>Guardian Name: *</label><br>
+            {{ form.guardian_name }}
+            {% if form.guardian_name.errors %}<p style="color: red;">{{ form.guardian_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Guardian Contact Number: *</label><br>
+            {{ form.guardian_contact }}
+            {% if form.guardian_contact.errors %}<p style="color: red;">{{ form.guardian_contact.errors }}</p>{% endif %}
+        </div>
+    </fieldset>
+    
+    <!-- Section 4: Medical Information -->
+    <fieldset>
+        <legend>Section 4: Medical Information</legend>
+        
+        <div>
+            <label>Disability Type: *</label><br>
+            {{ form.disability_type }}
+        </div>
+        
+        <div>
+            <label>Degree of Disability: *</label><br>
+            {{ form.degree_of_disability }}
+        </div>
+        
+        <div>
+            <label>Cause of Disability:</label><br>
+            {{ form.cause_of_disability }}
+        </div>
+        
+        <div>
+            <label>Date Diagnosed:</label><br>
+            {{ form.date_diagnosed }}
+        </div>
+        
+        <div>
+            <label>Assistive Devices Used:</label><br>
+            {{ form.assistive_devices }}
+        </div>
+        
+        <div>
+            <label>Medication:</label><br>
+            {{ form.medication }}
+        </div>
+    </fieldset>
+    
+    <!-- Section 5: Other Information -->
+    <fieldset>
+        <legend>Section 5: Other Information</legend>
+        
+        <div>
+            <label>PhilHealth Number:</label><br>
+            {{ form.philhealth_number }}
+        </div>
+        
+        <div>
+            <label>SSS/GSIS Number:</label><br>
+            {{ form.sss_gsis_number }}
+        </div>
+        
+        <div>
+            <label>Skills/Hobbies:</label><br>
+            {{ form.skills_hobbies }}
+        </div>
+        
+        <div>
+            <label>Organization Membership:</label><br>
+            {{ form.organization_membership }}
+        </div>
+        
+        <div>
+            <label>Emergency Contact Name: *</label><br>
+            {{ form.emergency_contact_name }}
+            {% if form.emergency_contact_name.errors %}<p style="color: red;">{{ form.emergency_contact_name.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Emergency Contact Number: *</label><br>
+            {{ form.emergency_contact_number }}
+            {% if form.emergency_contact_number.errors %}<p style="color: red;">{{ form.emergency_contact_number.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Emergency Contact Address: *</label><br>
+            {{ form.emergency_contact_address }}
+            {% if form.emergency_contact_address.errors %}<p style="color: red;">{{ form.emergency_contact_address.errors }}</p>{% endif %}
+        </div>
+        
+        <div>
+            <label>Add More Documents (PDF files):</label><br>
+            {{ form.documents }}
+            <p><em>New documents will be added to existing ones.</em></p>
+        </div>
+    </fieldset>
+    
+    {% if form.non_field_errors %}
+        <p style="color: red;">{{ form.non_field_errors }}</p>
+    {% endif %}
+    
+    <div>
+        <button type="submit">Save Changes</button>
+        <a href="{% url 'pwd:pwd_detail' pwd.id %}">Cancel</a>
+    </div>
+</form>
+
+<p><em>* Required fields</em></p>
+{% endblock %}
+
+
+
+
+

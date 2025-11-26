@@ -1,0 +1,49 @@
+{% extends 'acc_base.html' %}
+
+{% block title %}Register - Step {{ step }} of {{ total_steps }}{% endblock %}
+
+{% block content %}
+<h2>User Registration</h2>
+<p><strong>Step {{ step }} of {{ total_steps }}: Emergency Contact</strong></p>
+
+<form method="post" action="{% url 'accounts:register_step4' %}">
+    {% csrf_token %}
+    
+    <fieldset>
+        <legend>Emergency Contact Information</legend>
+        
+        <div>
+            <label for="id_emergency_contact_name">Emergency Contact Name: *</label><br>
+            {{ form.emergency_contact_name }}
+            {% if form.emergency_contact_name.errors %}
+                <p style="color: red;">{{ form.emergency_contact_name.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_emergency_contact_number">Emergency Contact Number: *</label><br>
+            {{ form.emergency_contact_number }}
+            {% if form.emergency_contact_number.errors %}
+                <p style="color: red;">{{ form.emergency_contact_number.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_emergency_contact_address">Emergency Contact Address: *</label><br>
+            {{ form.emergency_contact_address }}
+            {% if form.emergency_contact_address.errors %}
+                <p style="color: red;">{{ form.emergency_contact_address.errors }}</p>
+            {% endif %}
+        </div>
+    </fieldset>
+    
+    <div>
+        <a href="{% url 'accounts:register_step3' %}">← Previous</a>
+        <button type="submit">Next Step →</button>
+        <a href="{% url 'accounts:login' %}">Cancel</a>
+    </div>
+</form>
+
+<p><em>* Required fields</em></p>
+{% endblock %}
+

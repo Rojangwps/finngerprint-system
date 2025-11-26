@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+
+<p>Welcome, <strong>{{ username }}</strong>!</p>
+<hr>
+
+<!-- PWD Statistics -->
+<h3>PWD Statistics</h3>
+<table>
+    <tr>
+        <td><strong>Total PWDs</strong><span style="font-size: 24px;">{{ total_pwd }}</span></td>
+        <td><strong>Active</strong><span style="font-size: 24px; color: green;">{{ active_pwd }}</span></td>
+        <td><strong>Inactive</strong><span style="font-size: 24px; color: red;">{{ inactive_pwd }}</span></td>
+    </tr>
+</table>
+
+<table>
+    <tr>
+        <th colspan="2">By Sex</th>
+        <th colspan="3">By Degree of Disability</th>
+    </tr>
+    <tr>
+        <td>Male: <strong>{{ male_pwd }}</strong></td>
+        <td>Female: <strong>{{ female_pwd }}</strong></td>
+        <td>Low: <strong>{{ low_degree }}</strong></td>
+        <td>Moderate: <strong>{{ moderate_degree }}</strong></td>
+        <td>High: <strong>{{ high_degree }}</strong></td>
+    </tr>
+</table>
+
+<table>
+    <tr>
+        <th colspan="4">By Age Group</th>
+    </tr>
+    <tr>
+        <td>0-17 years: <strong>{{ age_0_17 }}</strong></td>
+        <td>18-30 years: <strong>{{ age_18_30 }}</strong></td>
+        <td>31-59 years: <strong>{{ age_31_59 }}</strong></td>
+        <td>60+ years: <strong>{{ age_60_plus }}</strong></td>
+    </tr>
+</table>
+
+<table style="width: 50%;">
+    <tr>
+        <th>By Disability Type</th>
+        <th>Count</th>
+    </tr>
+    {% for item in disability_stats %}
+    <tr>
+        <td>{{ item.disability_type }}</td>
+        <td><strong>{{ item.count }}</strong></td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="2">No data</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<table style="width: 50%;">
+    <tr>
+        <th>By Employment Status</th>
+        <th>Count</th>
+    </tr>
+    {% for item in employment_stats %}
+    <tr>
+        <td>{{ item.employment_status }}</td>
+        <td><strong>{{ item.count }}</strong></td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="2">No data</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<hr>
+
+<!-- User Statistics -->
+<h3>User Statistics</h3>
+<table>
+    <tr>
+        <td><strong>Total Users</strong><span style="font-size: 24px;">{{ total_users }}</span></td>
+        <td><strong>Verified</strong><span style="font-size: 24px; color: green;">{{ verified_users }}</span></td>
+        <td><strong>Unverified</strong><span style="font-size: 24px; color: orange;">{{ unverified_users }}</span></td>
+    </tr>
+</table>
+
+<table>
+    <tr>
+        <th colspan="2">By Status</th>
+        <th colspan="2">By Role</th>
+    </tr>
+    <tr>
+        <td>Active: <strong>{{ active_users }}</strong></td>
+        <td>Inactive: <strong>{{ inactive_users }}</strong></td>
+        <td>Admin: <strong>{{ admin_users }}</strong></td>
+        <td>Basic User: <strong>{{ basic_users }}</strong></td>
+    </tr>
+</table>
+
+<hr>
+
+<!-- Recent Activity -->
+<h3>Recent Activity</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>User</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in recent_logs %}
+        <tr>
+            <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+            <td>{{ log.action_type }}</td>
+            <td>{% if log.user %}{{ log.user.username }}{% else %}-{% endif %}</td>
+            <td>{{ log.description }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No recent activity</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a class="view-all" href="{% url 'accounts:audit_log' %}">View All Activity →</a></p>
+
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'acc_base.html' %}
+
+{% block title %}Register - Step {{ step }} of {{ total_steps }}{% endblock %}
+
+{% block content %}
+<h2>User Registration</h2>
+<p><strong>Step {{ step }} of {{ total_steps }}: Account Credentials</strong></p>
+
+<form method="post" action="{% url 'accounts:register_step1' %}">
+    {% csrf_token %}
+    
+    <fieldset>
+        <legend>Create Your Account</legend>
+        
+        <div>
+            <label for="id_username">Username: *</label><br>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <p style="color: red;"><strong>Error:</strong> {{ form.username.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_password">Password: *</label><br>
+            {{ form.password }}
+            {% if form.password.errors %}
+                <p style="color: red;"><strong>Error:</strong> {{ form.password.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_confirm_password">Confirm Password: *</label><br>
+            {{ form.confirm_password }}
+            {% if form.confirm_password.errors %}
+                <p style="color: red;"><strong>Error:</strong> {{ form.confirm_password.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_security_question">Security Question: *</label><br>
+            {{ form.security_question }}
+            {% if form.security_question.errors %}
+                <p style="color: red;"><strong>Error:</strong> {{ form.security_question.errors }}</p>
+            {% endif %}
+            <p><em>Example: What is your mother's maiden name?</em></p>
+        </div>
+        
+        <div>
+            <label for="id_security_answer">Security Answer: *</label><br>
+            {{ form.security_answer }}
+            {% if form.security_answer.errors %}
+                <p style="color: red;"><strong>Error:</strong> {{ form.security_answer.errors }}</p>
+            {% endif %}
+        </div>
+    </fieldset>
+    
+    {% if form.non_field_errors %}
+        <p style="color: red;"><strong>Error:</strong> {{ form.non_field_errors }}</p>
+    {% endif %}
+    
+    <div>
+        <button type="submit">Next Step →</button>
+        <a href="{% url 'accounts:login' %}">Cancel</a>
+    </div>
+</form>
+
+<p><em>* Required fields</em></p>
+{% endblock %}
+

@@ -1,0 +1,99 @@
+<!-- [FRONTEND] Admin: view audit logs (filterable by action, date) -->
+{% extends 'base.html' %}
+
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<h2>Audit Log</h2>
+
+<!-- Filters -->
+<form method="get" action="{% url 'accounts:audit_log' %}">
+    <fieldset>
+        <legend>Filters</legend>
+        
+        <label>Action Type:</label>
+        {{ form.action_type }}
+        
+        <label>From:</label>
+        {{ form.date_from }}
+        
+        <label>To:</label>
+        {{ form.date_to }}
+        
+        <label>Search:</label>
+        {{ form.search }}
+        
+        <button type="submit">Filter</button>
+        <a href="{% url 'accounts:audit_log' %}">Clear</a>
+    </fieldset>
+</form>
+
+<p><strong>Total Entries:</strong> {{ total_count }}</p>
+
+<!-- Log Table -->
+<table border="1" cellpadding="5">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Action Type</th>
+            <th>User</th>
+            <th>Target User</th>
+            <th>Description</th>
+            <th>IP Address</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in page_obj %}
+        <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+            <td>{{ log.action_type }}</td>
+            <td>
+                {% if log.user %}
+                    <a href="{% url 'accounts:user_detail' log.user.id %}">{{ log.user.username }}</a>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if log.target_user %}
+                    <a href="{% url 'accounts:user_detail' log.target_user.id %}">{{ log.target_user.username }}</a>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ log.description }}</td>
+            <td>{{ log.ip_address|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">No log entries found</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div>
+    <p>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+    
+    {% if page_obj.has_previous %}
+        <a href="?page=1{% if action_type %}&action_type={{ action_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search %}&search={{ search }}{% endif %}">First</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if action_type %}&action_type={{ action_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Previous</a>
+    {% endif %}
+    
+    <span>{{ page_obj.number }}</span>
+    
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if action_type %}&action_type={{ action_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if action_type %}&action_type={{ action_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Last</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<br>
+<a href="{% url 'pwd:dashboard' %}">← Back to Dashboard</a>
+{% endblock %}

@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+
+{% block title %}PWD List{% endblock %}
+
+{% block content %}
+
+<h2 class="page-title">PWD Registry</h2>
+
+<style>
+/* Page Title */
+.page-title {
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+/* Compact Register Button */
+.register-container {
+    text-align: right;
+    margin: 20px auto;  /* spacing above and below */
+    display: inline-block;
+}
+
+.register-container a {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.register-container a:hover {
+    background: linear-gradient(90deg, #2980b9, #1f6391);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Filter Box */
+fieldset {
+    border: 1px solid #ddd;
+    padding: 20px 25px;
+    margin: 20px auto;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    max-width: 1100px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+legend {
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 0 10px;
+    color: #2c3e50;
+}
+
+/* Put all filters in one row */
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Each filter group block */
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+}
+
+/* Labels */
+.filter-group label {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* Inputs */
+.filter-group input[type="text"],
+.filter-group select {
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* Center Search Button */
+.search-btn-container {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.search-btn-container button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: 0.3s;
+}
+
+.search-btn-container button:hover {
+    background-color: #2980b9;
+}
+
+.search-btn-container a {
+    display: inline-block;
+    padding: 10px 18px;
+    text-decoration: none;
+    color: #555;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-left: 10px;
+    transition: 0.3s;
+}
+
+.search-btn-container a:hover {
+    background-color: #f0f0f0;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+table th {
+    background-color: #2c3e50;
+    color: white;
+    padding: 10px;
+    text-align: left;
+}
+
+table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+table tr:hover {
+    background-color: #f5f5f5;
+}
+
+table a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+table a:hover {
+    text-decoration: underline;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Add spacing between sections */
+.section {
+    margin-bottom: 30px;
+}
+</style>
+
+<!-- Register Button Section -->
+<div class="section register-container">
+    <a href="{% url 'pwd:pwd_create' %}">+ Register New PWD</a>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="section">
+<form method="get" action="{% url 'pwd:pwd_list' %}">
+    <fieldset>
+        <legend>Search & Filter</legend>
+
+        <div class="filter-row">
+
+            <div class="filter-group">
+                <label>Search:</label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="ID, First Name, or Last Name">
+            </div>
+
+            <div class="filter-group">
+                <label>Status:</label>
+                <select name="status">
+                    <option value="">All</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Disability:</label>
+                <select name="disability">
+                    <option value="">All</option>
+                    {% for value, label in disability_types %}
+                        <option value="{{ value }}" {% if disability_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Degree:</label>
+                <select name="degree">
+                    <option value="">All</option>
+                    <option value="Low" {% if degree_filter == 'Low' %}selected{% endif %}>Low</option>
+                    <option value="Moderate" {% if degree_filter == 'Moderate' %}selected{% endif %}>Moderate</option>
+                    <option value="High" {% if degree_filter == 'High' %}selected{% endif %}>High</option>
+                </select>
+            </div>
+
+        </div>
+
+        <!-- Centered Search & Clear Buttons -->
+        <div class="search-btn-container">
+            <button type="submit">Search</button>
+            <a href="{% url 'pwd:pwd_list' %}">Clear</a>
+        </div>
+
+    </fieldset>
+</form>
+</div>
+
+<!-- Total Count Section -->
+<div class="section">
+    <p><strong>Total PWDs:</strong> {{ total_count }}</p>
+</div>
+
+<!-- PWD Table Section -->
+<div class="section">
+<table>
+    <thead>
+        <tr>
+            <th>Unique ID</th>
+            <th>Full Name</th>
+            <th>Age</th>
+            <th>Sex</th>
+            <th>Barangay</th>
+            <th>Disability Type</th>
+            <th>Degree</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pwd in page_obj %}
+        <tr>
+            <td>{{ pwd.unique_id }}</td>
+            <td>{{ pwd.get_full_name }}</td>
+            <td>{{ pwd.get_age }}</td>
+            <td>{% if pwd.sex == 'M' %}Male{% else %}Female{% endif %}</td>
+            <td>{{ pwd.barangay }}</td>
+            <td>{{ pwd.disability_type }}</td>
+            <td>{{ pwd.degree_of_disability }}</td>
+            <td>
+                {% if pwd.is_active %}Active{% else %}<span style="color: red;">Inactive</span>{% endif %}
+            </td>
+            <td>
+                <a href="{% url 'pwd:pwd_detail' pwd.id %}">View</a> |
+                <a href="{% url 'pwd:pwd_edit' pwd.id %}">Edit</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="9">No PWDs found</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<!-- Pagination Section -->
+{% if page_obj.has_other_pages %}
+<div class="section pagination">
+    <p>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+    
+    {% if page_obj.has_previous %}
+        <a href="?page=1">First</a>
+        <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    
+    <span>{{ page_obj.number }}</span>
+    
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Bottom Links Section -->
+<div class="section">
+    <a href="{% url 'pwd:dashboard' %}">← Back to Dashboard</a> |
+    <a href="{% url 'accounts:profile' %}">My Profile</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'acc_base.html' %}
+
+{% block title %}Register - Step {{ step }} of {{ total_steps }}{% endblock %}
+
+{% block content %}
+<h2>User Registration</h2>
+<p><strong>Step {{ step }} of {{ total_steps }}: Valid ID Upload (Final Step)</strong></p>
+
+<form method="post" action="{% url 'accounts:register_step5' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <fieldset>
+        <legend>Upload Your Valid ID</legend>
+        
+        <div>
+            <label for="id_valid_id">Valid ID Image: *</label><br>
+            {{ form.valid_id }}
+            {% if form.valid_id.errors %}
+                <p style="color: red;">{{ form.valid_id.errors }}</p>
+            {% endif %}
+            <p><em>Accepted formats: JPG, PNG, JPEG</em></p>
+            <p><em>Maximum file size: 5MB</em></p>
+            <p><em>Examples: Driver's License, National ID, Passport, etc.</em></p>
+        </div>
+    </fieldset>
+    
+    <div>
+        <a href="{% url 'accounts:register_step4' %}">← Previous</a>
+        <button type="submit">Complete Registration</button>
+        <a href="{% url 'accounts:login' %}">Cancel</a>
+    </div>
+</form>
+
+<p><em>* Required fields</em></p>
+
+<hr>
+<p><strong>Important:</strong> After submitting, your account will be created but will be inactive until an administrator verifies your information.</p>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!-- [FRONTEND] Registration success message -->
+
+{% extends 'acc_base.html' %}
+
+{% block title %}Registration Successful{% endblock %}
+
+{% block content %}
+<h2>Registration Successful!</h2>
+
+<p><strong>Thank you for registering!</strong></p>
+
+<p>Your account has been created successfully. However, your account is currently <strong>pending verification</strong> by an administrator.</p>
+
+<h3>What happens next?</h3>
+<ol>
+    <li>An administrator will review your information</li>
+    <li>You will be notified once your account is verified</li>
+    <li>After verification, you can login and access the system</li>
+</ol>
+
+<h3>Account Status</h3>
+<table border="1">
+    <tr>
+        <td><strong>Status:</strong></td>
+        <td>Unverified (Pending Admin Approval)</td>
+    </tr>
+    <tr>
+        <td><strong>Can Login:</strong></td>
+        <td>Yes, but with limited access</td>
+    </tr>
+    <tr>
+        <td><strong>Full Access:</strong></td>
+        <td>After admin verification</td>
+    </tr>
+</table>
+
+<br>
+
+<p><a href="{% url 'accounts:login' %}">Go to Login Page</a></p>
+
+<hr>
+
+<p><em>Note: If you have any questions or concerns, please contact the barangay office.</em></p>
+{% endblock %}
+

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PWD Profiling System{% endblock %}</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f4f9f4;
+            color: #333;
+        }
+
+        /* Header */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #2a6f2a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        nav h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav ul li {
+            margin-left: 20px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        nav ul li a:hover {
+            color: #a8d5a8;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            height: 100vh;
+            width: 220px;
+            position: fixed;
+            top: 60px; /* below fixed header */
+            left: 0;
+            background-color: #2a6f2a;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background-color: #1f4f1f;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 2px solid #3b8a3b;
+        }
+
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 12px 20px;
+            transition: background-color 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background-color: #1f4f1f;
+            border-left: 4px solid #a8d5a8;
+        }
+
+        /* Main content */
+        main {
+            margin-left: 220px; /* width of sidebar */
+            padding: 80px 20px 20px 20px; /* add top padding for fixed header */
+        }
+
+        h2, h3 {
+            color: #2a6f2a;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #2a6f2a;
+            margin: 20px 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+
+        table th, table td {
+            border: 1px solid #c1e1c1;
+            padding: 10px;
+            text-align: center;
+        }
+
+        table th {
+            background-color: #a8d5a8;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #eaf5ea;
+        }
+
+        table tr:hover {
+            background-color: #d0f0d0;
+        }
+
+        td span {
+            display: block;
+            margin-top: 5px;
+        }
+
+        a.view-all {
+            color: #2a6f2a;
+            font-weight: bold;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        a.view-all:hover {
+            color: #1f4f1f;
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 10px;
+            margin-top: 40px;
+            border-top: 1px solid #ccc;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Nav -->
+    <nav>
+        <h1>PWD Profiling System</h1>
+        <ul>
+            {% if request.session.user_id %}
+                <li>Welcome, {{ request.session.username }}!</li>
+                {% if request.session.role == 'admin' %}
+                    <li><a href="{% url 'pwd:dashboard' %}">Dashboard</a></li>
+                {% endif %}
+                <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
+                <li><a href="{% url 'accounts:logout' %}">Logout</a></li>
+            {% else %}
+                <li><a href="{% url 'accounts:login' %}">Login</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">Admin Dashboard</div>
+        <a href="{% url 'pwd:pwd_list' %}">PWD Registry</a>
+        <a href="{% url 'pwd:pwd_create' %}">Register New PWD</a>
+        <a href="{% url 'accounts:user_list' %}">User Management</a>
+        <a href="{% url 'accounts:audit_log' %}">Audit Log</a>
+        <a href="{% url 'accounts:profile' %}">My Profile</a>
+        <a href="{% url 'accounts:logout' %}">Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        &copy; 2025 PWD Profiling System
+    </footer>
+
+</body>
+</html>

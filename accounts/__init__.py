@@ -1,0 +1,1 @@
+# [BACKEND] Accounts app package

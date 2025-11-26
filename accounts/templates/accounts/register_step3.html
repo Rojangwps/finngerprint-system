@@ -1,0 +1,50 @@
+{% extends 'acc_base.html' %}
+
+{% block title %}Register - Step {{ step }} of {{ total_steps }}{% endblock %}
+
+{% block content %}
+<h2>User Registration</h2>
+<p><strong>Step {{ step }} of {{ total_steps }}: Household Information</strong></p>
+
+<form method="post" action="{% url 'accounts:register_step3' %}">
+    {% csrf_token %}
+    
+    <fieldset>
+        <legend>Household Details</legend>
+        
+        <div>
+            <label for="id_educational_attainment">Educational Attainment: *</label><br>
+            {{ form.educational_attainment }}
+            {% if form.educational_attainment.errors %}
+                <p style="color: red;">{{ form.educational_attainment.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_employment_status">Employment Status: *</label><br>
+            {{ form.employment_status }}
+            {% if form.employment_status.errors %}
+                <p style="color: red;">{{ form.employment_status.errors }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label for="id_occupation">Occupation: *</label><br>
+            {{ form.occupation }}
+            {% if form.occupation.errors %}
+                <p style="color: red;">{{ form.occupation.errors }}</p>
+            {% endif %}
+            <p><em>If unemployed, write "None" or "N/A"</em></p>
+        </div>
+    </fieldset>
+    
+    <div>
+        <a href="{% url 'accounts:register_step2' %}">← Previous</a>
+        <button type="submit">Next Step →</button>
+        <a href="{% url 'accounts:login' %}">Cancel</a>
+    </div>
+</form>
+
+<p><em>* Required fields</em></p>
+{% endblock %}
+
