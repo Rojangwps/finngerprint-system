@@ -1,3 +1,4 @@
+<!doctype html>
 {% extends 'base.html' %}
 
 {% block title %}Register PWD{% endblock %}
@@ -35,32 +36,24 @@
 
 <script>
 /*
-  Template JS behaviors:
-  - When user clicks Register Fingerprint (Web), we:
-    1) attempt to ask the Django server for the next free slot at /pwd/api/next_fingerprint_slot/ (optional)
-    2) call the local daemon at http://127.0.0.1:5001/enroll_start with { slot: chosenSlot }
-    3) open an EventSource stream to the returned events_url and display messages in fpMessages
-    4) on success, fill the fingerprint slot input and enable submit
-
-  Requirements:
-  - A running fingerprint daemon with SSE at http://127.0.0.1:5001 (see earlier instructions)
-  - If you want Django to choose the slot, provide a POST endpoint at /pwd/api/next_fingerprint_slot/
-    which returns JSON {"slot": N}. If that endpoint does not exist we fall back to letting the daemon choose.
-  - The daemon must allow CORS from your Django origin (the sample daemon enables CORS for localhost).
+  Updated behavior:
+  - The client calls the Django proxy endpoint to start enrollment: {% url 'pwd:register_fingerprint' %}
+    This avoids CORS / mixed-content issues and surfaces clearer errors from the server.
+  - The server proxy forwards to the local daemon (/enroll_start) and returns the daemon JSON,
+    which must include { job_id, events_url }.
+  - The client opens an EventSource to events_url (SSE served by the daemon) to receive device messages
+    and the final "done" event with the enrolled slot.
 */
 
-const DAEMON_URL = 'http://127.0.0.1:5001';           // change if you run daemon on a different host/port
-const DAEMON_START_PATH = '/enroll_start';           // POST -> returns { job_id, events_url }
-const NEXT_SLOT_ENDPOINT = '/pwd/api/next_fingerprint_slot/'; // optional Django endpoint to reserve slot
+const REGISTER_ENDPOINT = "{% url 'pwd:register_fingerprint' %}";    // Django proxy that forwards to daemon
+const NEXT_SLOT_ENDPOINT = "{% url 'pwd:next_fingerprint_slot' %}";  // optional server reservation
 
 function getCookie(name) {
-    // standard Django CSRF cookie getter
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -78,21 +71,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const slotInput = document.getElementById('id_fingerprint_slot');
     const submitBtn = document.getElementById('submitBtn');
 
-    let es = null;    // EventSource
-    let currentJob = null;
+    let es = null;
     let jobActive = false;
 
-    // enable submit if user manually types a value
+    // enable submit if user types a slot manually
     slotInput.addEventListener('input', function() {
         submitBtn.disabled = slotInput.value.trim() === "";
     });
 
     cancelBtn.addEventListener('click', function() {
-        // stop listening to the EventSource and reset UI
-        if (es) {
-            try { es.close(); } catch (e) {}
-            es = null;
-        }
+        if (es) try { es.close(); } catch(e){}
+        es = null;
         jobActive = false;
         statusSpan.textContent = 'Enrollment cancelled.';
         messagesDiv.style.display = 'none';
@@ -109,17 +98,14 @@ document.addEventListener('DOMContentLoaded', function() {
         messagesDiv.textContent = 'Preparing enrollment...';
         jobActive = true;
 
-        // Step 1: ask Django for a next slot (optional)
+        // 1) Try to reserve a slot from the server (optional)
         let chosenSlot = null;
         try {
             const csrftoken = getCookie('csrftoken');
             const res = await fetch(NEXT_SLOT_ENDPOINT, {
                 method: 'POST',
                 credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
+                headers: {'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
                 body: JSON.stringify({})
             });
             if (res.ok) {
@@ -128,33 +114,56 @@ document.addEventListener('DOMContentLoaded', function() {
                     chosenSlot = j.slot;
                     messagesDiv.textContent += '\\nServer reserved slot: ' + chosenSlot;
                 } else {
-                    messagesDiv.textContent += '\\nServer did not return a slot; proceeding without a reservation.';
+                    messagesDiv.textContent += '\\nServer did not return a slot; letting daemon pick.';
                 }
             } else {
-                messagesDiv.textContent += '\\nNo slot reservation endpoint available (status ' + res.status + '); proceeding without reservation.';
+                messagesDiv.textContent += `\\nSlot reservation endpoint returned ${res.status}; proceeding without reservation.`;
             }
         } catch (err) {
-            // ignore errors and proceed - daemon will pick a slot or use default
-            messagesDiv.textContent += '\\nCannot reserve slot from server (will let device pick): ' + err;
+            messagesDiv.textContent += '\\nCannot reserve slot from server (continuing): ' + err;
         }
 
-        // Step 2: call daemon to start enrollment
+        // 2) Start enrollment through Django proxy (REGISTER_ENDPOINT)
         let startResp = null;
         try {
+            const csrftoken = getCookie('csrftoken');
             const body = chosenSlot ? { slot: chosenSlot } : {};
-            const r = await fetch(DAEMON_URL + DAEMON_START_PATH, {
+            const r = await fetch(REGISTER_ENDPOINT, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 body: JSON.stringify(body)
             });
-            if (!r.ok) throw new Error('daemon responded ' + r.status);
-            startResp = await r.json();
-            if (!startResp || !startResp.events_url) throw new Error('invalid daemon response');
+
+            const text = await r.text();
+            try {
+                startResp = JSON.parse(text);
+            } catch (e) {
+                startResp = { error: 'invalid_response', raw: text, status: r.status };
+            }
+
+            if (!r.ok) {
+                messagesDiv.textContent += '\\nError starting enrollment on server: ' + (startResp.error || startResp.raw || JSON.stringify(startResp));
+                statusSpan.textContent = 'Failed to start enrollment.';
+                registerBtn.disabled = false;
+                cancelBtn.style.display = 'none';
+                jobActive = false;
+                return;
+            }
+
+            if (!startResp || !startResp.events_url) {
+                messagesDiv.textContent += '\\nServer did not return events_url. Response: ' + JSON.stringify(startResp);
+                statusSpan.textContent = 'Failed to start enrollment.';
+                registerBtn.disabled = false;
+                cancelBtn.style.display = 'none';
+                jobActive = false;
+                return;
+            }
+
             messagesDiv.textContent += '\\nEnrollment started. Waiting for device prompts...';
             statusSpan.textContent = 'Registering fingerprint... (follow prompts on the device)';
-            currentJob = startResp.job_id;
         } catch (err) {
-            messagesDiv.textContent += '\\nError starting enrollment on daemon: ' + err;
+            messagesDiv.textContent += '\\nError starting enrollment: ' + err;
             statusSpan.textContent = 'Failed to start enrollment.';
             registerBtn.disabled = false;
             cancelBtn.style.display = 'none';
@@ -162,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Step 3: open EventSource to stream device messages
+        // 3) Open SSE EventSource to the returned events_url (daemon SSE)
         try {
             es = new EventSource(startResp.events_url);
         } catch (err) {
@@ -191,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         messagesDiv.textContent += '\\nEnrollment failed.';
                         statusSpan.textContent = 'Enrollment failed';
                     }
-                    // cleanup
                     try { es.close(); } catch (e) {}
                     es = null;
                     jobActive = false;
@@ -203,10 +211,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) {
                 messagesDiv.textContent += '\\n(Invalid event data)';
             }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         };
 
         es.onerror = function(e) {
-            messagesDiv.textContent += '\\n(EventSource error) ' + (e && e.message ? e.message : '');
+            messagesDiv.textContent += '\\n(EventSource error)';
             statusSpan.textContent = 'EventStream error';
             try { es.close(); } catch (err) {}
             es = null;
@@ -216,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     });
 
-    // if a slot is already filled in (e.g., editing), enable submit
+    // if a slot is prefilled (editing case), enable submit
     if (slotInput.value && slotInput.value.trim() !== '') submitBtn.disabled = false;
 });
 </script>

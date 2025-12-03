@@ -1,17 +1,12 @@
+# url=https://github.com/owner/repo/blob/main/fingerprint_serial_daemon.py
 """
-Fingerprint serial daemon with SSE and identify support.
-
-Run on the machine where the Arduino / fingerprint sensor is attached.
-
-Usage:
+Fingerprint serial daemon (updated to avoid Arduino auto-reset / timing issues)
+- Waits after opening serial so the Arduino sketch can boot
+- Ensures DTR is cleared to avoid triggering reset behavior
+- Sends ENROLL commands with CR+LF and logs DEBUG messages
+Run with:
   pip install fastapi uvicorn pyserial
   uvicorn fingerprint_serial_daemon:app --host 127.0.0.1 --port 5001
-
-Endpoints:
-  GET  /status                    -> {"ok": true, "port": "COM5", "baud": 9600}
-  POST /enroll_start              -> {"job_id":"...","events_url":"http://127.0.0.1:5001/events/<job_id>"}
-  GET  /events/{job_id}           -> SSE stream of messages and final done
-  POST /identify                  -> {"success": true, "slot": N} or {"success": false, "error": "..."}
 """
 import threading
 import time
@@ -30,14 +25,13 @@ except Exception:
     serial = None
 
 # === CONFIG ===
-SERIAL_PORT = "COM5"           # change to your COM port if different
+SERIAL_PORT = "COM5"
 SERIAL_BAUD = 9600
 SERIAL_READ_TIMEOUT = 1
-ENROLL_RESPONSE_TIMEOUT = 180  # seconds to wait when enrolling
-IDENTIFY_TIMEOUT = 30          # seconds to wait when identifying
+ENROLL_RESPONSE_TIMEOUT = 180
+IDENTIFY_TIMEOUT = 30
 DAEMON_HOST = "127.0.0.1"
 DAEMON_PORT = 5001
-# allowed origins for CORS (your Django dev server)
 ALLOWED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000"]
 # ==============
 
@@ -50,7 +44,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# job_id -> queue.Queue
 jobs = {}
 jobs_lock = threading.Lock()
 
@@ -59,10 +52,29 @@ def open_serial():
     if serial is None:
         raise RuntimeError("pyserial is not installed (pip install pyserial)")
     try:
+        # Open port
         ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=SERIAL_READ_TIMEOUT)
-        time.sleep(0.2)
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
+        # Prevent Arduino auto-reset impact:
+        # - Clear DTR line immediately after opening to avoid toggling the bootloader/reset
+        # - Wait a short time to let the sketch initialize and print its startup text
+        try:
+            # Clear DTR/RTS to be safe; some boards use these lines
+            ser.setDTR(False)
+            ser.setRTS(False)
+        except Exception:
+            # not all pyserial versions/hardware support setRTS/setDTR
+            try:
+                ser.dtr = False
+            except Exception:
+                pass
+        # Wait for Arduino boot/initialization (1.5..3s depending on board). Conservative default:
+        time.sleep(2.5)
+        # Flush any initial output
+        try:
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+        except Exception:
+            pass
         return ser
     except Exception as e:
         raise RuntimeError(f"cannot open serial port: {e}")
@@ -88,70 +100,20 @@ def enroll_job(job_id: str, slot: int):
         return
 
     try:
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
-    except Exception:
-        pass
-
-    cmd = f"ENROLL {slot}\n"
-    try:
-        ser.write(cmd.encode())
-        _enqueue(job_id, json.dumps({"type": "message", "text": f"DEBUG: sent command: {cmd.strip()}"}))
-    except Exception as e:
-        _enqueue(job_id, json.dumps({"type": "error", "text": f"serial_write_error:{e}"}))
-        _enqueue(job_id, json.dumps({"type": "done", "success": False}))
+        # ensure buffers cleared after the boot wait
         try:
-            ser.close()
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
         except Exception:
             pass
-        return
 
-    end_time = time.time() + ENROLL_RESPONSE_TIMEOUT
-    while time.time() < end_time:
+        # Use CR+LF as many Arduino sketches expect that; include DEBUG enqueue
+        cmd = f"ENROLL {slot}\r\n"
         try:
-            raw = ser.readline().decode(errors="ignore").strip()
-        except Exception:
-            raw = ""
-        if not raw:
-            continue
-        _enqueue(job_id, json.dumps({"type": "message", "text": raw}))
-        up = raw.upper()
-
-        # success messages
-        if up.startswith("ENROLLED:"):
-            try:
-                rslot = int(raw.split(":", 1)[1].strip())
-                _enqueue(job_id, json.dumps({"type": "done", "success": True, "slot": rslot}))
-                try:
-                    ser.close()
-                except Exception:
-                    pass
-                return
-            except Exception:
-                _enqueue(job_id, json.dumps({"type": "error", "text": "malformed_enrolled_response"}))
-                _enqueue(job_id, json.dumps({"type": "done", "success": False}))
-                try:
-                    ser.close()
-                except Exception:
-                    pass
-                return
-        if "STORED ID #" in up:
-            try:
-                part = raw.split("#")[-1].strip()
-                rslot = int(part)
-                _enqueue(job_id, json.dumps({"type": "done", "success": True, "slot": rslot}))
-                try:
-                    ser.close()
-                except Exception:
-                    pass
-                return
-            except Exception:
-                pass
-
-        # device error
-        if up.startswith("ERROR:"):
-            msg = raw.split(":", 1)[1].strip() if ":" in raw else raw
-            _enqueue(job_id, json.dumps({"type": "error", "text": msg}))
+            ser.write(cmd.encode())
+            _enqueue(job_id, json.dumps({"type": "message", "text": f"DEBUG: sent command: {cmd.strip()}"}))
+        except Exception as e:
+            _enqueue(job_id, json.dumps({"type": "error", "text": f"serial_write_error:{e}"}))
             _enqueue(job_id, json.dumps({"type": "done", "success": False}))
             try:
                 ser.close()
@@ -159,22 +121,77 @@ def enroll_job(job_id: str, slot: int):
                 pass
             return
 
-    # timeout
-    _enqueue(job_id, json.dumps({"type": "error", "text": "timeout_waiting_for_device"}))
-    _enqueue(job_id, json.dumps({"type": "done", "success": False}))
-    try:
-        ser.close()
-    except Exception:
-        pass
+        end_time = time.time() + ENROLL_RESPONSE_TIMEOUT
+        while time.time() < end_time:
+            try:
+                raw = ser.readline().decode(errors="ignore").strip()
+            except Exception:
+                raw = ""
+            if not raw:
+                continue
+            _enqueue(job_id, json.dumps({"type": "message", "text": raw}))
+            up = raw.upper()
+
+            # success messages
+            if up.startswith("ENROLLED:"):
+                try:
+                    rslot = int(raw.split(":", 1)[1].strip())
+                    _enqueue(job_id, json.dumps({"type": "done", "success": True, "slot": rslot}))
+                    try:
+                        ser.close()
+                    except Exception:
+                        pass
+                    return
+                except Exception:
+                    _enqueue(job_id, json.dumps({"type": "error", "text": "malformed_enrolled_response"}))
+                    _enqueue(job_id, json.dumps({"type": "done", "success": False}))
+                    try:
+                        ser.close()
+                    except Exception:
+                        pass
+                    return
+            if "STORED ID #" in up:
+                try:
+                    part = raw.split("#")[-1].strip()
+                    rslot = int(part)
+                    _enqueue(job_id, json.dumps({"type": "done", "success": True, "slot": rslot}))
+                    try:
+                        ser.close()
+                    except Exception:
+                        pass
+                    return
+                except Exception:
+                    pass
+
+            # device error
+            if up.startswith("ERROR:"):
+                msg = raw.split(":", 1)[1].strip() if ":" in raw else raw
+                _enqueue(job_id, json.dumps({"type": "error", "text": msg}))
+                _enqueue(job_id, json.dumps({"type": "done", "success": False}))
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+                return
+
+        # timeout
+        _enqueue(job_id, json.dumps({"type": "error", "text": "timeout_waiting_for_device"}))
+        _enqueue(job_id, json.dumps({"type": "done", "success": False}))
+        try:
+            ser.close()
+        except Exception:
+            pass
+    except Exception as e:
+        try:
+            ser.close()
+        except Exception:
+            pass
+        _enqueue(job_id, json.dumps({"type": "error", "text": f"internal_error:{e}"}))
+        _enqueue(job_id, json.dumps({"type": "done", "success": False}))
 
 
 @app.post("/enroll_start")
 def enroll_start(slot: Optional[int] = None):
-    """
-    POST /enroll_start
-    start an enroll job. Accepts optional JSON body {"slot": <n>}.
-    Returns job_id and events_url.
-    """
     chosen_slot = slot if slot else 1
     job_id = str(uuid.uuid4())
     q = queue.Queue()
@@ -199,7 +216,6 @@ def events(job_id: str):
             try:
                 item = q.get(timeout=1.0)
             except queue.Empty:
-                # SSE comment keepalive
                 yield ":\n\n"
                 continue
             yield f"data: {item}\n\n"
@@ -218,11 +234,6 @@ def events(job_id: str):
 
 @app.post("/identify")
 def identify():
-    """
-    POST /identify
-    Synchronously attempt to match a presented fingerprint.
-    Returns {"success": True, "slot": N} or {"success": False, "error": "..."}
-    """
     try:
         ser = open_serial()
     except Exception as e:
@@ -235,9 +246,7 @@ def identify():
         except Exception:
             pass
 
-        # Send a typical "search" command the sketch might respond to.
-        # Your sketch may use a different identify/search command - adjust if necessary.
-        cmds_to_try = ["SEARCH\n", "IDENTIFY\n", "VERIFY\n"]
+        cmds_to_try = ["SEARCH\r\n", "IDENTIFY\r\n", "VERIFY\r\n"]
         sent = False
         for cmd in cmds_to_try:
             try:
@@ -260,7 +269,6 @@ def identify():
             if not raw:
                 continue
             up = raw.upper()
-            # quick normalization and search for numbers in common response patterns
             if any(token in up for token in ("FOUND ID", "STORED ID", "MATCHED", "ID #", "ID:")):
                 m = re.search(r"#\s*(\d+)|ID[:#]?\s*(\d+)|MATCHED[:#]?\s*(\d+)|FOUND[:#]?\s*(\d+)", raw, re.IGNORECASE)
                 if m:
@@ -277,7 +285,6 @@ def identify():
             if "NO MATCH" in up or "NOT FOUND" in up or "NOT MATCH" in up:
                 ser.close()
                 return JSONResponse({"success": False, "error": "no_match"})
-            # otherwise keep reading
         ser.close()
         return JSONResponse({"success": False, "error": "timeout_no_match"})
     except Exception as e:

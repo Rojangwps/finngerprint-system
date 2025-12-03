@@ -1,6 +1,13 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
+# Optional import to validate username uniqueness at form validation time.
+# If your accounts app uses a custom user model in a different path, change this import or rely on get_user_model in the view.
+try:
+    from accounts.models import User as AccountsUser
+except Exception:
+    AccountsUser = None
+
 
 class MultiFileInput(forms.ClearableFileInput):
     """
@@ -184,11 +191,34 @@ class PWDRegistrationForm(forms.Form):
     emergency_contact_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=True)
 
     # supporting docs
-    # Use a widget that allows multiple file selection
     documents = forms.FileField(
         required=False,
         widget=MultiFileInput(attrs={'accept': '.pdf', 'multiple': True})
     )
+
+    # optional account creation fields (admin can create user during registration)
+    create_account = forms.BooleanField(required=False, initial=False, label="Create login account for this PWD")
+    account_username = forms.CharField(required=False, max_length=150, label="Account username")
+    account_password1 = forms.CharField(required=False, widget=forms.PasswordInput, label="Password")
+    account_password2 = forms.CharField(required=False, widget=forms.PasswordInput, label="Confirm password")
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('create_account'):
+            username = cleaned.get('account_username')
+            pw1 = cleaned.get('account_password1')
+            pw2 = cleaned.get('account_password2')
+
+            if not username:
+                raise ValidationError("Username is required when creating an account for the PWD.")
+            if not pw1 or not pw2:
+                raise ValidationError("Both password fields are required when creating an account.")
+            if pw1 != pw2:
+                raise ValidationError("Passwords do not match.")
+            if AccountsUser is not None:
+                if AccountsUser.objects.filter(username=username).exists():
+                    raise ValidationError("Username already exists; choose another username.")
+        return cleaned
 
     def clean_photo(self):
         photo = self.cleaned_data.get('photo')

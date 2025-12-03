@@ -1,7 +1,7 @@
+from datetime import date
 import os
 import json
 import time
-from datetime import date
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -10,18 +10,23 @@ from django.db.models import Count, Q
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import get_user_model
 
-# Local imports
 from .models import PWDProfile, PWDDocument
 from .forms import PWDRegistrationForm
 from accounts.models import User, AuditLog
 
 import requests
 
-# -------------------------------
-# HELPER FUNCTIONS
-# -------------------------------
+UserModel = get_user_model()
 
+# DAEMON URL from settings (where your fingerprint daemon runs)
+DAEMON_URL = getattr(settings, "FINGERPRINT_DEVICE_URL", "http://127.0.0.1:5001")
+
+
+# -------------------------------
+# Helper functions
+# -------------------------------
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -64,9 +69,8 @@ def save_pwd_document(file, pwd, uploaded_by):
 
 
 # -------------------------------
-# DASHBOARD
+# Dashboard
 # -------------------------------
-
 def dashboard_view(request):
     user_id = request.session.get('user_id')
     role = request.session.get('role')
@@ -92,7 +96,7 @@ def dashboard_view(request):
 
     today = date.today()
 
-    def get_age(birthdate):
+    def _get_age(birthdate):
         age = today.year - birthdate.year
         if (today.month, today.day) < (birthdate.month, birthdate.day):
             age -= 1
@@ -100,7 +104,10 @@ def dashboard_view(request):
 
     age_groups = {'0_17': 0, '18_30': 0, '31_59': 0, '60_plus': 0}
     for pwd in PWDProfile.objects.filter(is_active=True):
-        age = get_age(pwd.birthdate)
+        try:
+            age = _get_age(pwd.birthdate)
+        except Exception:
+            continue
         if age <= 17:
             age_groups['0_17'] += 1
         elif age <= 30:
@@ -111,12 +118,10 @@ def dashboard_view(request):
             age_groups['60_plus'] += 1
 
     total_users = User.objects.count()
-    verified_users = User.objects.filter(is_verified=True).count()
-    unverified_users = total_users - verified_users
+    verified_users = User.objects.filter(is_verified=True).count() if hasattr(User, 'is_verified') else 0
     active_users = User.objects.filter(is_active=True).count()
-    inactive_users = total_users - active_users
-    admin_users = User.objects.filter(role='admin').count()
-    basic_users = User.objects.filter(role='basic_user').count()
+    admin_users = User.objects.filter(role='admin').count() if hasattr(User, 'role') else 0
+    basic_users = User.objects.filter(role='basic_user').count() if hasattr(User, 'role') else 0
 
     recent_logs = AuditLog.objects.all().order_by('-timestamp')[:10]
 
@@ -135,9 +140,7 @@ def dashboard_view(request):
         **age_groups,
         'total_users': total_users,
         'verified_users': verified_users,
-        'unverified_users': unverified_users,
         'active_users': active_users,
-        'inactive_users': inactive_users,
         'admin_users': admin_users,
         'basic_users': basic_users,
         'recent_logs': recent_logs,
@@ -146,9 +149,8 @@ def dashboard_view(request):
 
 
 # -------------------------------
-# CREATE PWD
+# CREATE PWD (with optional account creation)
 # -------------------------------
-
 def pwd_create_view(request):
     user_id = request.session.get('user_id')
     is_verified = request.session.get('is_verified')
@@ -171,7 +173,7 @@ def pwd_create_view(request):
             unique_id = PWDProfile.generate_unique_id()
             photo_path = save_pwd_photo(form.cleaned_data['photo'], unique_id) if form.cleaned_data.get('photo') else None
 
-            # Attempt to parse fingerprint_slot (may be empty)
+            # parse fingerprint_slot
             slot_val = form.cleaned_data.get('fingerprint_slot')
             try:
                 slot_int = int(slot_val) if slot_val else None
@@ -180,31 +182,31 @@ def pwd_create_view(request):
 
             pwd = PWDProfile.objects.create(
                 unique_id=unique_id,
-                first_name=form.cleaned_data['first_name'],
+                first_name=form.cleaned_data.get('first_name'),
                 middle_name=form.cleaned_data.get('middle_name', ''),
-                last_name=form.cleaned_data['last_name'],
+                last_name=form.cleaned_data.get('last_name'),
                 suffix=form.cleaned_data.get('suffix', ''),
-                birthdate=form.cleaned_data['birthdate'],
-                sex=form.cleaned_data['sex'],
-                civil_status=form.cleaned_data['civil_status'],
-                barangay=form.cleaned_data['barangay'],
-                address=form.cleaned_data['address'],
-                contact_number=form.cleaned_data['contact_number'],
-                religion=form.cleaned_data['religion'],
+                birthdate=form.cleaned_data.get('birthdate'),
+                sex=form.cleaned_data.get('sex'),
+                civil_status=form.cleaned_data.get('civil_status'),
+                barangay=form.cleaned_data.get('barangay'),
+                address=form.cleaned_data.get('address'),
+                contact_number=form.cleaned_data.get('contact_number'),
+                religion=form.cleaned_data.get('religion'),
                 nationality=form.cleaned_data.get('nationality', 'Filipino'),
                 photo_path=photo_path,
-                educational_attainment=form.cleaned_data['educational_attainment'],
-                employment_status=form.cleaned_data['employment_status'],
+                educational_attainment=form.cleaned_data.get('educational_attainment'),
+                employment_status=form.cleaned_data.get('employment_status'),
                 occupation=form.cleaned_data.get('occupation', ''),
                 type_of_employment=form.cleaned_data.get('type_of_employment', ''),
                 household_income=form.cleaned_data.get('household_income'),
                 household_size=form.cleaned_data.get('household_size'),
                 living_situation=form.cleaned_data.get('living_situation', ''),
                 housing_type=form.cleaned_data.get('housing_type', ''),
-                guardian_name=form.cleaned_data['guardian_name'],
-                guardian_contact=form.cleaned_data['guardian_contact'],
-                disability_type=form.cleaned_data['disability_type'],
-                degree_of_disability=form.cleaned_data['degree_of_disability'],
+                guardian_name=form.cleaned_data.get('guardian_name'),
+                guardian_contact=form.cleaned_data.get('guardian_contact'),
+                disability_type=form.cleaned_data.get('disability_type'),
+                degree_of_disability=form.cleaned_data.get('degree_of_disability'),
                 cause_of_disability=form.cleaned_data.get('cause_of_disability', ''),
                 date_diagnosed=form.cleaned_data.get('date_diagnosed'),
                 assistive_devices=form.cleaned_data.get('assistive_devices', ''),
@@ -213,16 +215,43 @@ def pwd_create_view(request):
                 sss_gsis_number=form.cleaned_data.get('sss_gsis_number', ''),
                 skills_hobbies=form.cleaned_data.get('skills_hobbies', ''),
                 organization_membership=form.cleaned_data.get('organization_membership', ''),
-                emergency_contact_name=form.cleaned_data['emergency_contact_name'],
-                emergency_contact_number=form.cleaned_data['emergency_contact_number'],
-                emergency_contact_address=form.cleaned_data['emergency_contact_address'],
+                emergency_contact_name=form.cleaned_data.get('emergency_contact_name'),
+                emergency_contact_number=form.cleaned_data.get('emergency_contact_number'),
+                emergency_contact_address=form.cleaned_data.get('emergency_contact_address'),
                 created_by=current_user,
                 updated_by=current_user,
                 fingerprint_slot=slot_int,
             )
 
+            # save uploaded documents
             for doc in request.FILES.getlist('documents'):
                 save_pwd_document(doc, pwd, current_user)
+
+            # optionally create a linked user account (admin chooses)
+            if form.cleaned_data.get('create_account'):
+                username = form.cleaned_data.get('account_username')
+                password = form.cleaned_data.get('account_password1')
+                try:
+                    # Prefer create_user (handles password hashing & extra fields)
+                    if hasattr(UserModel.objects, 'create_user'):
+                        created_user = UserModel.objects.create_user(username=username, password=password)
+                    else:
+                        created_user = UserModel(username=username)
+                        created_user.set_password(password)
+                        created_user.save()
+                    # Link if the PWDProfile model has an 'account' field
+                    if hasattr(pwd, 'account'):
+                        pwd.account = created_user
+                        pwd.save()
+                except Exception as e:
+                    messages.warning(request, f"PWD saved but account creation failed: {e}")
+                    AuditLog.log(
+                        action_type='account_creation_failed',
+                        description=f'Failed to create account for PWD {pwd.unique_id}: {e}',
+                        user=current_user,
+                        target_pwd=pwd,
+                        ip_address=get_client_ip(request)
+                    )
 
             AuditLog.log(
                 action_type='user_registered',
@@ -243,13 +272,8 @@ def pwd_create_view(request):
 
 
 # -------------------------------
-# FINGERPRINT REGISTRATION ENDPOINTS (Django-side)
+# Fingerprint endpoints used by the front-end
 # -------------------------------
-
-# DAEMON URL from settings (where your fingerprint daemon runs)
-DAEMON_URL = getattr(settings, "FINGERPRINT_DEVICE_URL", "http://127.0.0.1:5001")
-
-
 @csrf_exempt
 def next_fingerprint_slot_view(request):
     """
@@ -284,20 +308,19 @@ def register_fingerprint_view(request):
             body = {}
 
         # forward to daemon
-        resp = requests.post(f"{DAEMON_URL.rstrip('/')}/enroll_start", json=body, timeout=5)
+        resp = requests.post(f"{DAEMON_URL.rstrip('/')}/enroll_start", json=body, timeout=10)
         # return daemon JSON as-is
         try:
             return JsonResponse(resp.json(), status=resp.status_code)
         except Exception:
-            return JsonResponse({"error": "invalid_daemon_response"}, status=500)
+            return JsonResponse({"error": "invalid_daemon_response", "raw": resp.text}, status=502)
     except requests.exceptions.RequestException as e:
-        return JsonResponse({"error": f"daemon_unreachable:{e}"}, status=500)
+        return JsonResponse({"error": f"daemon_unreachable:{e}"}, status=502)
 
 
 # -------------------------------
 # LIST, DETAIL, EDIT, TOGGLE STATUS, DELETE DOC
 # -------------------------------
-
 def pwd_list_view(request):
     user_id = request.session.get('user_id')
     if not user_id:
