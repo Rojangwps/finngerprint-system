@@ -124,3 +124,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ------------------------------
 AUTHENTICATION_BACKENDS = []
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
+# Fingerprint serial settings — set the COM port only (no commands!)
+FINGERPRINT_SERIAL_PORT = "COM5"
+FINGERPRINT_BAUD = 9600
+# Optional timeouts
+FINGERPRINT_SERIAL_TIMEOUT = 60

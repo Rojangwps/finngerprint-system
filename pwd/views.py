@@ -1,6 +1,3 @@
-# [BACKEND] PWD Views
-# Handles: PWD CRUD, Dashboard, Documents, Fingerprint registration
-
 import os
 import json
 import time
@@ -14,11 +11,12 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+# Local imports
 from .models import PWDProfile, PWDDocument
 from .forms import PWDRegistrationForm
 from accounts.models import User, AuditLog
-from .utils.fingerprint_reader import register_fingerprint
 
+import requests
 
 # -------------------------------
 # HELPER FUNCTIONS
@@ -76,7 +74,6 @@ def dashboard_view(request):
         messages.error(request, 'Access denied.')
         return redirect('accounts:login' if not user_id else 'accounts:profile')
 
-    # PWD stats
     total_pwd = PWDProfile.objects.count()
     active_pwd = PWDProfile.objects.filter(is_active=True).count()
     inactive_pwd = total_pwd - active_pwd
@@ -94,6 +91,7 @@ def dashboard_view(request):
         count=Count('id')).order_by('-count')
 
     today = date.today()
+
     def get_age(birthdate):
         age = today.year - birthdate.year
         if (today.month, today.day) < (birthdate.month, birthdate.day):
@@ -112,7 +110,6 @@ def dashboard_view(request):
         else:
             age_groups['60_plus'] += 1
 
-    # User stats
     total_users = User.objects.count()
     verified_users = User.objects.filter(is_verified=True).count()
     unverified_users = total_users - verified_users
@@ -174,6 +171,13 @@ def pwd_create_view(request):
             unique_id = PWDProfile.generate_unique_id()
             photo_path = save_pwd_photo(form.cleaned_data['photo'], unique_id) if form.cleaned_data.get('photo') else None
 
+            # Attempt to parse fingerprint_slot (may be empty)
+            slot_val = form.cleaned_data.get('fingerprint_slot')
+            try:
+                slot_int = int(slot_val) if slot_val else None
+            except Exception:
+                slot_int = None
+
             pwd = PWDProfile.objects.create(
                 unique_id=unique_id,
                 first_name=form.cleaned_data['first_name'],
@@ -214,6 +218,7 @@ def pwd_create_view(request):
                 emergency_contact_address=form.cleaned_data['emergency_contact_address'],
                 created_by=current_user,
                 updated_by=current_user,
+                fingerprint_slot=slot_int,
             )
 
             for doc in request.FILES.getlist('documents'):
@@ -238,18 +243,55 @@ def pwd_create_view(request):
 
 
 # -------------------------------
-# FINGERPRINT REGISTRATION
+# FINGERPRINT REGISTRATION ENDPOINTS (Django-side)
 # -------------------------------
+
+# DAEMON URL from settings (where your fingerprint daemon runs)
+DAEMON_URL = getattr(settings, "FINGERPRINT_DEVICE_URL", "http://127.0.0.1:5001")
+
+
+@csrf_exempt
+def next_fingerprint_slot_view(request):
+    """
+    POST -> returns next free slot as JSON {"slot": N}
+    Finds first free 1..200 not used in PWDProfile.fingerprint_slot.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "invalid_method"}, status=405)
+
+    used = set(PWDProfile.objects.exclude(fingerprint_slot__isnull=True).values_list("fingerprint_slot", flat=True))
+    for i in range(1, 201):
+        if i not in used:
+            return JsonResponse({"slot": i})
+    return JsonResponse({"error": "no_free_slots"}, status=400)
+
 
 @csrf_exempt
 def register_fingerprint_view(request):
-    if request.method == 'POST':
+    """
+    POST -> proxy to daemon's /enroll_start
+    Accepts optional JSON body {"slot": N}. Returns the daemon response JSON (job_id and events_url)
+    or error JSON.
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
+
+    try:
+        body = {}
         try:
-            success = register_fingerprint()
-            return JsonResponse({"success": success})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
-    return JsonResponse({"success": False, "error": "Invalid request"})
+            body = json.loads(request.body.decode() or "{}")
+        except Exception:
+            body = {}
+
+        # forward to daemon
+        resp = requests.post(f"{DAEMON_URL.rstrip('/')}/enroll_start", json=body, timeout=5)
+        # return daemon JSON as-is
+        try:
+            return JsonResponse(resp.json(), status=resp.status_code)
+        except Exception:
+            return JsonResponse({"error": "invalid_daemon_response"}, status=500)
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": f"daemon_unreachable:{e}"}, status=500)
 
 
 # -------------------------------
@@ -269,7 +311,6 @@ def pwd_list_view(request):
 
     pwds = PWDProfile.objects.all().order_by('-created_at')
 
-    # Search
     search_query = request.GET.get('search', '')
     if search_query:
         pwds = pwds.filter(
@@ -278,7 +319,6 @@ def pwd_list_view(request):
             Q(last_name__icontains=search_query)
         )
 
-    # Filters
     status_filter = request.GET.get('status', '')
     if status_filter == 'active':
         pwds = pwds.filter(is_active=True)
@@ -352,10 +392,10 @@ def pwd_edit_view(request, pwd_id):
             if form.cleaned_data.get('photo'):
                 pwd.photo_path = save_pwd_photo(form.cleaned_data['photo'], pwd.unique_id)
 
-            # update fields
-            for field in form.cleaned_data:
-                if hasattr(pwd, field):
-                    setattr(pwd, field, form.cleaned_data[field])
+            # update fields manually (only fields that exist on the model)
+            for key, value in form.cleaned_data.items():
+                if hasattr(pwd, key) and key not in ('unique_id', 'created_by', 'created_at', 'updated_at'):
+                    setattr(pwd, key, value)
 
             pwd.updated_by = current_user
             pwd.save()
@@ -376,7 +416,46 @@ def pwd_edit_view(request, pwd_id):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = PWDRegistrationForm(instance=pwd)
+        # populate initial data for the form
+        initial = {
+            'first_name': pwd.first_name,
+            'middle_name': pwd.middle_name,
+            'last_name': pwd.last_name,
+            'suffix': pwd.suffix,
+            'birthdate': pwd.birthdate,
+            'sex': pwd.sex,
+            'civil_status': pwd.civil_status,
+            'barangay': pwd.barangay,
+            'address': pwd.address,
+            'contact_number': pwd.contact_number,
+            'religion': pwd.religion,
+            'nationality': pwd.nationality,
+            'educational_attainment': pwd.educational_attainment,
+            'employment_status': pwd.employment_status,
+            'occupation': pwd.occupation,
+            'type_of_employment': pwd.type_of_employment,
+            'household_income': pwd.household_income,
+            'household_size': pwd.household_size,
+            'living_situation': pwd.living_situation,
+            'housing_type': pwd.housing_type,
+            'guardian_name': pwd.guardian_name,
+            'guardian_contact': pwd.guardian_contact,
+            'disability_type': pwd.disability_type,
+            'degree_of_disability': pwd.degree_of_disability,
+            'cause_of_disability': pwd.cause_of_disability,
+            'date_diagnosed': pwd.date_diagnosed,
+            'assistive_devices': pwd.assistive_devices,
+            'medication': pwd.medication,
+            'philhealth_number': pwd.philhealth_number,
+            'sss_gsis_number': pwd.sss_gsis_number,
+            'skills_hobbies': pwd.skills_hobbies,
+            'organization_membership': pwd.organization_membership,
+            'emergency_contact_name': pwd.emergency_contact_name,
+            'emergency_contact_number': pwd.emergency_contact_number,
+            'emergency_contact_address': pwd.emergency_contact_address,
+            'fingerprint_slot': pwd.fingerprint_slot,
+        }
+        form = PWDRegistrationForm(initial=initial)
 
     return render(request, 'pwd/pwd_edit.html', {'form': form, 'pwd': pwd})
 
@@ -419,7 +498,7 @@ def pwd_delete_document_view(request, pwd_id, doc_id):
 
     is_verified = request.session.get('is_verified')
     if not is_verified:
-        messages.error(request, 'Account must be verified.')
+        messages.error(request, 'Account must be verified to perform this action.')
         return redirect('accounts:profile')
 
     if request.method == 'POST':

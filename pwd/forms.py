@@ -1,15 +1,20 @@
-# [BACKEND] Django forms for validation
-# Forms: PWDRegistrationForm, PWDEditForm, SearchForm, etc.
-
-
 from django import forms
 from django.core.exceptions import ValidationError
 
 
+class MultiFileInput(forms.ClearableFileInput):
+    """
+    Allow multiple file selection. Django's FileInput/ ClearableFileInput
+    will raise if you set 'multiple' unless the widget sets
+    `allow_multiple_selected = True`.
+    """
+    allow_multiple_selected = True
+
+
 class PWDRegistrationForm(forms.Form):
-    #PWD registration
-    
-    #section 1 personal info
+    # PWD registration
+
+    # section 1 personal info
     first_name = forms.CharField(max_length=100, required=True)
     middle_name = forms.CharField(max_length=100, required=False)
     last_name = forms.CharField(max_length=100, required=True)
@@ -38,8 +43,14 @@ class PWDRegistrationForm(forms.Form):
     religion = forms.CharField(max_length=100, required=True)
     nationality = forms.CharField(max_length=50, initial='Filipino', required=True)
     photo = forms.ImageField(required=False)
-    
-    #section 2 household info
+
+    # fingerprint slot (filled by front-end after enrollment)
+    fingerprint_slot = forms.CharField(required=False, label="Fingerprint slot", widget=forms.TextInput(attrs={
+        "placeholder": "e.g. 10",
+        "id": "id_fingerprint_slot"
+    }))
+
+    # section 2 household info
     educational_attainment = forms.ChoiceField(
         choices=[
             ('None', 'None'),
@@ -75,11 +86,11 @@ class PWDRegistrationForm(forms.Form):
         ],
         required=False
     )
-    
-    #section 3 socio economic info
+
+    # section 3 socio economic info
     household_income = forms.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
+        max_digits=10,
+        decimal_places=2,
         required=False,
         min_value=0
     )
@@ -107,8 +118,8 @@ class PWDRegistrationForm(forms.Form):
     )
     guardian_name = forms.CharField(max_length=200, required=True)
     guardian_contact = forms.CharField(max_length=20, required=True)
-    
-    #section 4 medical info
+
+    # section 4 medical info
     disability_type = forms.ChoiceField(
         choices=[
             ('Visual', 'Visual Disability'),
@@ -154,8 +165,8 @@ class PWDRegistrationForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 2}),
         required=False
     )
-    
-    #section 5 other info
+
+    # section 5 other info
     philhealth_number = forms.CharField(max_length=20, required=False)
     sss_gsis_number = forms.CharField(max_length=20, required=False)
     skills_hobbies = forms.CharField(
@@ -166,18 +177,19 @@ class PWDRegistrationForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 2}),
         required=False
     )
-    
-    #emergency cont info
+
+    # emergency contact info
     emergency_contact_name = forms.CharField(max_length=200, required=True)
     emergency_contact_number = forms.CharField(max_length=20, required=True)
     emergency_contact_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), required=True)
-    
-    #supporting docs
+
+    # supporting docs
+    # Use a widget that allows multiple file selection
     documents = forms.FileField(
         required=False,
-        widget=forms.FileInput(attrs={'accept': '.pdf'})
+        widget=MultiFileInput(attrs={'accept': '.pdf', 'multiple': True})
     )
-    
+
     def clean_photo(self):
         photo = self.cleaned_data.get('photo')
         if photo:
