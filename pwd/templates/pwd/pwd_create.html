@@ -4,488 +4,65 @@
 
 {% block content %}
 
-<style>
-/* Dashboard-style PWD Registration Form CSS */
+<h2 class="page-title">Register PWD</h2>
 
-.page-title {
-    text-align: center;
-    color: #2c3e50;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    font-weight: 600;
-}
+<form id="pwdForm" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
 
-.form-card {
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 30px;
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-}
+    <button type="button" id="registerFingerprintBtn">Register Fingerprint</button>
+    <span id="fingerprintStatus" style="margin-left: 10px;"></span>
 
-.form-card fieldset {
-    border: 1px solid #ddd;
-    padding: 20px 25px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    background-color: #f9f9f9;
-}
-
-.form-card legend {
-    font-weight: 600;
-    font-size: 1.1em;
-    padding: 0 10px;
-    color: #2c3e50;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    font-weight: 500;
-    margin-bottom: 5px;
-    display: block;
-}
-
-.form-card input[type="text"],
-.form-card input[type="number"],
-.form-card input[type="date"],
-.form-card input[type="file"],
-.form-card select,
-.form-card textarea {
-    width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 5px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    font-size: 14px;
-}
-
-.form-card textarea {
-    min-height: 70px;
-    resize: vertical;
-}
-
-.form-card .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.form-card button {
-    background-color: #3498db;
-    color: white;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 15px;
-    transition: 0.3s;
-}
-
-.form-card button:hover {
-    background-color: #2980b9;
-}
-
-.form-card a {
-    display: inline-block;
-    padding: 10px 18px;
-    text-decoration: none;
-    color: #555;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    transition: 0.3s;
-}
-
-.form-card a:hover {
-    background-color: #f0f0f0;
-}
-
-.error {
-    color: #e74c3c;
-    font-size: 13px;
-    margin-top: 3px;
-}
-
-.note {
-    font-size: 12px;
-    color: #7f8c8d;
-}
-
-/* Multi-Step Form */
-.section-step {
-    display: none;
-}
-.section-step.active {
-    display: block;
-}
-
-.step-nav {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
-
-.step-btn {
-    background: #3498db;
-    color: white;
-    padding: 10px 25px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.step-btn:hover {
-    background: #2980b9;
-}
-</style>
-
-<h2 class="page-title">Register New PWD</h2>
-
-<div class="form-card">
-    <form method="post" action="{% url 'pwd:pwd_create' %}" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <!-- Section 1: Personal Information -->
-        <div class="section-step active" id="step1">
-            <fieldset>
-                <legend>Section 1: Personal Information</legend>
-
-                <div class="form-group">
-                    <label>First Name: *</label>
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}
-                        <p class="error">{{ form.first_name.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Middle Name:</label>
-                    {{ form.middle_name }}
-                </div>
-
-                <div class="form-group">
-                    <label>Last Name: *</label>
-                    {{ form.last_name }}
-                    {% if form.last_name.errors %}
-                        <p class="error">{{ form.last_name.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Suffix:</label>
-                    {{ form.suffix }}
-                </div>
-
-                <div class="form-group">
-                    <label>Birthdate: *</label>
-                    {{ form.birthdate }}
-                    {% if form.birthdate.errors %}
-                        <p class="error">{{ form.birthdate.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Sex: *</label>
-                    {{ form.sex }}
-                    {% if form.sex.errors %}
-                        <p class="error">{{ form.sex.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Civil Status: *</label>
-                    {{ form.civil_status }}
-                    {% if form.civil_status.errors %}
-                        <p class="error">{{ form.civil_status.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Barangay: *</label>
-                    {{ form.barangay }}
-                    {% if form.barangay.errors %}
-                        <p class="error">{{ form.barangay.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Complete Address: *</label>
-                    {{ form.address }}
-                    {% if form.address.errors %}
-                        <p class="error">{{ form.address.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Contact Number: *</label>
-                    {{ form.contact_number }}
-                    {% if form.contact_number.errors %}
-                        <p class="error">{{ form.contact_number.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Religion: *</label>
-                    {{ form.religion }}
-                    {% if form.religion.errors %}
-                        <p class="error">{{ form.religion.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Nationality: *</label>
-                    {{ form.nationality }}
-                    {% if form.nationality.errors %}
-                        <p class="error">{{ form.nationality.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Photo (optional):</label>
-                    {{ form.photo }}
-                    {% if form.photo.errors %}
-                        <p class="error">{{ form.photo.errors }}</p>
-                    {% endif %}
-                    <p class="note">Max 5MB. JPG, PNG accepted.</p>
-                </div>
-
-            </fieldset>
-
-            <div class="step-nav">
-                <button type="button" class="step-btn" onclick="nextStep(2)">Next</button>
-            </div>
-        </div>
-
-        <!-- Section 2: Household Information -->
-        <div class="section-step" id="step2">
-            <fieldset>
-                <legend>Section 2: Household Information</legend>
-
-                <div class="form-group">
-                    <label>Educational Attainment: *</label>
-                    {{ form.educational_attainment }}
-                    {% if form.educational_attainment.errors %}
-                        <p class="error">{{ form.educational_attainment.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Employment Status: *</label>
-                    {{ form.employment_status }}
-                    {% if form.employment_status.errors %}
-                        <p class="error">{{ form.employment_status.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Occupation:</label>
-                    {{ form.occupation }}
-                </div>
-
-                <div class="form-group">
-                    <label>Type of Employment:</label>
-                    {{ form.type_of_employment }}
-                </div>
-
-            </fieldset>
-
-            <div class="step-nav">
-                <button type="button" class="step-btn" onclick="prevStep(1)">Back</button>
-                <button type="button" class="step-btn" onclick="nextStep(3)">Next</button>
-            </div>
-        </div>
-
-        <!-- Section 3: Socio-Economic Information -->
-        <div class="section-step" id="step3">
-            <fieldset>
-                <legend>Section 3: Socio-Economic Information</legend>
-
-                <div class="form-group">
-                    <label>Household Monthly Income:</label>
-                    {{ form.household_income }}
-                    {% if form.household_income.errors %}
-                        <p class="error">{{ form.household_income.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Household Size:</label>
-                    {{ form.household_size }}
-                </div>
-
-                <div class="form-group">
-                    <label>Living Situation:</label>
-                    {{ form.living_situation }}
-                </div>
-
-                <div class="form-group">
-                    <label>Housing Type:</label>
-                    {{ form.housing_type }}
-                </div>
-
-                <div class="form-group">
-                    <label>Guardian Name: *</label>
-                    {{ form.guardian_name }}
-                    {% if form.guardian_name.errors %}
-                        <p class="error">{{ form.guardian_name.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Guardian Contact Number: *</label>
-                    {{ form.guardian_contact }}
-                    {% if form.guardian_contact.errors %}
-                        <p class="error">{{ form.guardian_contact.errors }}</p>
-                    {% endif %}
-                </div>
-
-            </fieldset>
-
-            <div class="step-nav">
-                <button type="button" class="step-btn" onclick="prevStep(2)">Back</button>
-                <button type="button" class="step-btn" onclick="nextStep(4)">Next</button>
-            </div>
-        </div>
-
-        <!-- Section 4: Medical Information -->
-        <div class="section-step" id="step4">
-            <fieldset>
-                <legend>Section 4: Medical Information</legend>
-
-                <div class="form-group">
-                    <label>Disability Type: *</label>
-                    {{ form.disability_type }}
-                    {% if form.disability_type.errors %}
-                        <p class="error">{{ form.disability_type.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Degree of Disability: *</label>
-                    {{ form.degree_of_disability }}
-                    {% if form.degree_of_disability.errors %}
-                        <p class="error">{{ form.degree_of_disability.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Cause of Disability:</label>
-                    {{ form.cause_of_disability }}
-                </div>
-
-                <div class="form-group">
-                    <label>Date Diagnosed:</label>
-                    {{ form.date_diagnosed }}
-                </div>
-
-                <div class="form-group">
-                    <label>Assistive Devices Used:</label>
-                    {{ form.assistive_devices }}
-                </div>
-
-                <div class="form-group">
-                    <label>Medication:</label>
-                    {{ form.medication }}
-                </div>
-
-            </fieldset>
-
-            <div class="step-nav">
-                <button type="button" class="step-btn" onclick="prevStep(3)">Back</button>
-                <button type="button" class="step-btn" onclick="nextStep(5)">Next</button>
-            </div>
-        </div>
-
-        <!-- Section 5: Other Information -->
-        <div class="section-step" id="step5">
-            <fieldset>
-                <legend>Section 5: Other Information</legend>
-
-                <div class="form-group">
-                    <label>PhilHealth Number:</label>
-                    {{ form.philhealth_number }}
-                </div>
-
-                <div class="form-group">
-                    <label>SSS/GSIS Number:</label>
-                    {{ form.sss_gsis_number }}
-                </div>
-
-                <div class="form-group">
-                    <label>Skills/Hobbies:</label>
-                    {{ form.skills_hobbies }}
-                </div>
-
-                <div class="form-group">
-                    <label>Organization Membership:</label>
-                    {{ form.organization_membership }}
-                </div>
-
-                <div class="form-group">
-                    <label>Emergency Contact Name: *</label>
-                    {{ form.emergency_contact_name }}
-                    {% if form.emergency_contact_name.errors %}
-                        <p class="error">{{ form.emergency_contact_name.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Emergency Contact Number: *</label>
-                    {{ form.emergency_contact_number }}
-                    {% if form.emergency_contact_number.errors %}
-                        <p class="error">{{ form.emergency_contact_number.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Emergency Contact Address: *</label>
-                    {{ form.emergency_contact_address }}
-                    {% if form.emergency_contact_address.errors %}
-                        <p class="error">{{ form.emergency_contact_address.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Supporting Documents (PDF files):</label>
-                    {{ form.documents }}
-                    <p class="note">You can select multiple PDF files. Max 5MB each.</p>
-                </div>
-
-            </fieldset>
-
-            <div class="step-nav">
-                <button type="button" class="step-btn" onclick="prevStep(4)">Back</button>
-                <button class="step-btn" type="submit">Submit</button>
-            </div>
-        </div>
-
-        {% if form.non_field_errors %}
-            <p class="error">{{ form.non_field_errors }}</p>
-        {% endif %}
-
-    </form>
-</div>
-
-<p class="note"><em>* Required fields</em></p>
+    <br><br>
+    <button type="submit" id="submitBtn" disabled>Submit Registration</button>
+</form>
 
 <script>
-function nextStep(step) {
-    document.querySelectorAll('.section-step').forEach(s => s.classList.remove('active'));
-    document.getElementById('step' + step).classList.add('active');
-}
+document.addEventListener("DOMContentLoaded", function() {
+    const registerBtn = document.getElementById("registerFingerprintBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const statusSpan = document.getElementById("fingerprintStatus");
 
-function prevStep(step) {
-    document.querySelectorAll('.section-step').forEach(s => s.classList.remove('active'));
-    document.getElementById('step' + step).classList.add('active');
-}
+    registerBtn.addEventListener("click", function() {
+        statusSpan.textContent = "Registering fingerprint...";
+        registerBtn.disabled = true;
+
+        fetch("{% url 'pwd:register_fingerprint' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                username: document.querySelector('[name="user_username"]').value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusSpan.textContent = "Fingerprint registered successfully ✅";
+                submitBtn.disabled = false; // enable form submission
+            } else {
+                statusSpan.textContent = "Fingerprint registration failed ❌";
+                console.error(data.error || "Unknown error");
+                registerBtn.disabled = false;
+            }
+        })
+        .catch(err => {
+            statusSpan.textContent = "Error connecting to fingerprint scanner ❌";
+            console.error(err);
+            registerBtn.disabled = false;
+        });
+    });
+
+    // Optional: prevent form submission if fingerprint not registered
+    document.getElementById("pwdForm").addEventListener("submit", function(e) {
+        if (submitBtn.disabled) {
+            e.preventDefault();
+            alert("Please register fingerprint before submitting the form.");
+        }
+    });
+});
 </script>
 
-{% endblock %}+66666666666666666666666666+
+{% endblock %}

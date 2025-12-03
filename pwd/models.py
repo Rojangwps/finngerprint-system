@@ -14,6 +14,7 @@ class PWDProfile(models.Model):
     
     #unique ID YYYY-####
     unique_id = models.CharField(max_length=9, unique=True)
+    fingerprint_id = models.IntegerField(blank=True, null=True, unique=True)
     
     #personal info
     first_name = models.CharField(max_length=100)

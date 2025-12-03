@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import User, AuditLog
+
 from .forms import (
     LoginForm, 
     RegistrationStep1Form, 
@@ -24,6 +25,34 @@ from .forms import (
 )
 from .services import RegistrationService
 from datetime import datetime, timedelta
+# accounts/utils/fingerprint_reader.py
+import serial
+import time
+
+def get_fingerprint_id(port='COM3', baud=9600):
+    """
+    Read fingerprint ID from Arduino AS608 over serial.
+    """
+    ser = serial.Serial(port, baud, timeout=2)
+    time.sleep(2)  # Wait for Arduino
+    if ser.in_waiting:
+        data = ser.readline().decode().strip()
+        if data.isdigit():
+            return int(data)
+    return None
+# accounts/views.py
+from django.contrib.auth import login
+
+def verify_fingerprint(request):
+    finger_id = get_fingerprint_id()
+    if finger_id:
+        try:
+            user = User.objects.get(fingerprint_id=finger_id)
+            login(request, user)
+            return redirect('dashboard')  # Redirect to dashboard after login
+        except User.DoesNotExist:
+            return render(request, 'accounts/login_fail.html', {'error': 'Fingerprint not recognized.'})
+    return render(request, 'accounts/login_fail.html', {'error': 'No fingerprint detected.'})
 
 
 

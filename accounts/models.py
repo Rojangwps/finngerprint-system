@@ -14,6 +14,7 @@ class User(models.Model):
     role = models.CharField(max_length=20, default='basic_user')
     is_active = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)
+    fingerprint_id = models.IntegerField(blank=True, null=True, unique=True)
     
     #timestamps
     created_at = models.DateTimeField(auto_now_add=True)
