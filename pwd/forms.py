@@ -2,7 +2,6 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 # Optional import to validate username uniqueness at form validation time.
-# If your accounts app uses a custom user model in a different path, change this import or rely on get_user_model in the view.
 try:
     from accounts.models import User as AccountsUser
 except Exception:
@@ -11,9 +10,7 @@ except Exception:
 
 class MultiFileInput(forms.ClearableFileInput):
     """
-    Allow multiple file selection. Django's FileInput/ ClearableFileInput
-    will raise if you set 'multiple' unless the widget sets
-    `allow_multiple_selected = True`.
+    Allow multiple file selection.
     """
     allow_multiple_selected = True
 

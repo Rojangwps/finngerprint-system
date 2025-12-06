@@ -1,23 +1,27 @@
-    # [BACKEND + DATABASE] Django ORM models
-# Models: PWDProfile, PWDDocument
-# Maps to PostgreSQL db: pwd_profiles, pwd_documents
-
-
-
 from django.db import models
-from django.conf import settings
 from datetime import date
 
 
 class PWDProfile(models.Model):
-   #PWD profile main record for PWD
-    
-    #unique ID YYYY-####
+    """
+    PWD profile main record for PWD.
+
+    Added optional `account` OneToOneField so a created accounts.User can be linked to the profile.
+    """
     unique_id = models.CharField(max_length=9, unique=True)
     fingerprint_id = models.IntegerField(blank=True, null=True, unique=True)
     fingerprint_slot = models.IntegerField(blank=True, null=True, unique=True)
-    
-    #personal info
+
+    # Optional link to a login account (accounts.User)
+    account = models.OneToOneField(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pwd_account'
+    )
+
+    # personal info
     first_name = models.CharField(max_length=100)
     middle_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100)
@@ -37,8 +41,8 @@ class PWDProfile(models.Model):
     religion = models.CharField(max_length=100, default="N/A")
     nationality = models.CharField(max_length=50, default='Filipino')
     photo_path = models.CharField(max_length=255, blank=True, null=True)
-    
-    #household info
+
+    # household info
     educational_attainment = models.CharField(max_length=50, choices=[
         ('None', 'None'),
         ('Elementary', 'Elementary'),
@@ -65,8 +69,8 @@ class PWDProfile(models.Model):
         ('Part-time', 'Part-time'),
         ('Self-employed', 'Self-employed'),
     ])
-    
-    #socio economic info
+
+    # socio economic info
     household_income = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     household_size = models.IntegerField(blank=True, null=True)
     living_situation = models.CharField(max_length=50, blank=True, null=True, choices=[
@@ -86,8 +90,8 @@ class PWDProfile(models.Model):
     ])
     guardian_name = models.CharField(max_length=200, default="N/A")
     guardian_contact = models.CharField(max_length=20, default="0000")
-    
-    #medical info
+
+    # medical info
     disability_type = models.CharField(max_length=100, choices=[
         ('Visual', 'Visual Disability'),
         ('Hearing', 'Hearing Disability'),
@@ -115,27 +119,26 @@ class PWDProfile(models.Model):
     date_diagnosed = models.DateField(blank=True, null=True)
     assistive_devices = models.TextField(blank=True, null=True)
     medication = models.TextField(blank=True, null=True)
-    
-    #0ther info
+
+    # other info
     philhealth_number = models.CharField(max_length=20, blank=True, null=True)
     sss_gsis_number = models.CharField(max_length=20, blank=True, null=True)
     skills_hobbies = models.TextField(blank=True, null=True)
     organization_membership = models.TextField(blank=True, null=True)
-    
-    #emergency contact info
+
+    # emergency contact info
     emergency_contact_name = models.CharField(max_length=200, default="N/A")
     emergency_contact_number = models.CharField(max_length=20, default="0000")
     emergency_contact_address = models.TextField(default="N/A")
 
-    
-    #status
+    # status
     is_active = models.BooleanField(default=True)
-    
-    #timestamps
+
+    # timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    #audit whom created/updated
+
+    # audit whom created/updated
     created_by = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,
@@ -150,17 +153,14 @@ class PWDProfile(models.Model):
         related_name='pwd_updated',
         db_column='updated_by'
     )
-    
-    
-    #fingerprint_data = models.BinaryField(blank=True, null=True)
-    
+
     class Meta:
         db_table = 'pwd_profile'
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return f"{self.unique_id} - {self.first_name} {self.last_name}"
-    
+
     def get_full_name(self):
         parts = [self.first_name]
         if self.middle_name:
@@ -169,39 +169,29 @@ class PWDProfile(models.Model):
         if self.suffix:
             parts.append(self.suffix)
         return ' '.join(parts)
-    
+
     def get_age(self):
-        #calculate age from bday
         today = date.today()
         age = today.year - self.birthdate.year
         if (today.month, today.day) < (self.birthdate.month, self.birthdate.day):
             age -= 1
         return age
-    
+
     @staticmethod
     def generate_unique_id():
-        #generate unique ID
         current_year = date.today().year
-        
-        #find last PWD registered this year
-        last_pwd = PWDProfile.objects.filter(
-            unique_id__startswith=str(current_year)
-        ).order_by('-unique_id').first()
-        
+        last_pwd = PWDProfile.objects.filter(unique_id__startswith=str(current_year)).order_by('-unique_id').first()
+
         if last_pwd:
-            #extract sequence number and increment
             last_seq = int(last_pwd.unique_id.split('-')[1])
             new_seq = last_seq + 1
         else:
-            #first PWD of the year
             new_seq = 1
-        
-        #format YYYY-#### 4 digit sequence
+
         return f"{current_year}-{new_seq:04d}"
 
 
 class PWDDocument(models.Model):
-    
     pwd_profile = models.ForeignKey(
         PWDProfile,
         on_delete=models.CASCADE,
@@ -210,8 +200,8 @@ class PWDDocument(models.Model):
     file_path = models.CharField(max_length=255)
     file_name = models.CharField(max_length=255)
     file_type = models.CharField(max_length=10, default='pdf')
-    file_size = models.IntegerField(default=0)  
-    
+    file_size = models.IntegerField(default=0)
+
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(
         'accounts.User',
@@ -220,14 +210,14 @@ class PWDDocument(models.Model):
         related_name='pwd_documents_uploaded',
         db_column='uploaded_by'
     )
-    
+
     class Meta:
         db_table = 'pwd_documents'
         ordering = ['-uploaded_at']
-    
+
     def __str__(self):
         return f"{self.pwd_profile.unique_id} - {self.file_name}"
-    
+
     def get_file_size_display(self):
         if self.file_size < 1024:
             return f"{self.file_size} B"

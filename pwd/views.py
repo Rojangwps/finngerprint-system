@@ -1,7 +1,7 @@
-from datetime import date
 import os
 import json
 import time
+from datetime import date
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -307,9 +307,7 @@ def register_fingerprint_view(request):
         except Exception:
             body = {}
 
-        # forward to daemon
         resp = requests.post(f"{DAEMON_URL.rstrip('/')}/enroll_start", json=body, timeout=10)
-        # return daemon JSON as-is
         try:
             return JsonResponse(resp.json(), status=resp.status_code)
         except Exception:
