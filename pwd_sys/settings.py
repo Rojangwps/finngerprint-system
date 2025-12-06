@@ -129,3 +129,7 @@ FINGERPRINT_SERIAL_PORT = "COM5"
 FINGERPRINT_BAUD = 9600
 # Optional timeouts
 FINGERPRINT_SERIAL_TIMEOUT = 60
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]

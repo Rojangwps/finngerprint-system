@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}PWD Profile{% endblock %}
+
+{% block content %}
+<style>
+.profile-card { max-width: 1000px; margin: 30px auto; padding: 20px; background:#fff; border-radius:8px; box-shadow: 0 3px 12px rgba(0,0,0,0.08); }
+.profile-card h2 { margin-top: 0; }
+.section { margin-top: 18px; padding-top: 12px; border-top: 1px solid #eee; }
+.field { margin-bottom: 8px; }
+.label { color:#666; font-weight:600; display:inline-block; width:220px; }
+.value { color:#222; display:inline-block; }
+.photo { float:right; max-width:150px; max-height:150px; border-radius:6px; object-fit:cover; margin-left:12px; }
+.doc-list { margin-top:10px; }
+.link-row { margin-top:16px; }
+.link-row a { margin-right: 12px; color:#3498db; text-decoration:none; }
+</style>
+
+<div class="profile-card">
+  <h2>PWD Profile</h2>
+
+  {% if profile %}
+    {% if profile.photo_path %}
+      <img src="{{ profile.photo_path }}" alt="Photo" class="photo">
+    {% endif %}
+
+    <div class="section">
+      <h3>Personal Information</h3>
+      <div class="field"><span class="label">Unique ID:</span> <span class="value">{{ profile.unique_id }}</span></div>
+      <div class="field"><span class="label">Full name:</span> <span class="value">{{ profile.get_full_name }}</span></div>
+      <div class="field"><span class="label">Birthdate / Age:</span> <span class="value">{{ profile.birthdate }} / {{ profile.get_age }}</span></div>
+      <div class="field"><span class="label">Sex:</span> <span class="value">{{ profile.get_sex_display|default:profile.sex }}</span></div>
+      <div class="field"><span class="label">Civil status:</span> <span class="value">{{ profile.civil_status }}</span></div>
+      <div class="field"><span class="label">Barangay:</span> <span class="value">{{ profile.barangay }}</span></div>
+      <div class="field"><span class="label">Address:</span> <span class="value">{{ profile.address }}</span></div>
+      <div class="field"><span class="label">Contact number:</span> <span class="value">{{ profile.contact_number }}</span></div>
+      <div class="field"><span class="label">Religion:</span> <span class="value">{{ profile.religion }}</span></div>
+      <div class="field"><span class="label">Nationality:</span> <span class="value">{{ profile.nationality }}</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Household / Employment</h3>
+      <div class="field"><span class="label">Educational attainment:</span> <span class="value">{{ profile.educational_attainment }}</span></div>
+      <div class="field"><span class="label">Employment status:</span> <span class="value">{{ profile.employment_status }}</span></div>
+      <div class="field"><span class="label">Occupation:</span> <span class="value">{{ profile.occupation|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Type of employment:</span> <span class="value">{{ profile.type_of_employment|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Household income:</span> <span class="value">{{ profile.household_income|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Household size:</span> <span class="value">{{ profile.household_size|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Living situation:</span> <span class="value">{{ profile.living_situation|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Housing type:</span> <span class="value">{{ profile.housing_type|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Guardian:</span> <span class="value">{{ profile.guardian_name }} ({{ profile.guardian_contact }})</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Medical / Disability</h3>
+      <div class="field"><span class="label">Disability type:</span> <span class="value">{{ profile.disability_type|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Degree of disability:</span> <span class="value">{{ profile.degree_of_disability|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Cause of disability:</span> <span class="value">{{ profile.cause_of_disability|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Date diagnosed:</span> <span class="value">{{ profile.date_diagnosed|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Assistive devices:</span> <span class="value">{{ profile.assistive_devices|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Medication:</span> <span class="value">{{ profile.medication|default:"N/A" }}</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Other Info</h3>
+      <div class="field"><span class="label">PhilHealth no.:</span> <span class="value">{{ profile.philhealth_number|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">SSS/GSIS no.:</span> <span class="value">{{ profile.sss_gsis_number|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Skills / Hobbies:</span> <span class="value">{{ profile.skills_hobbies|default:"N/A" }}</span></div>
+      <div class="field"><span class="label">Organization membership:</span> <span class="value">{{ profile.organization_membership|default:"N/A" }}</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Emergency Contact</h3>
+      <div class="field"><span class="label">Name:</span> <span class="value">{{ profile.emergency_contact_name }}</span></div>
+      <div class="field"><span class="label">Contact No.:</span> <span class="value">{{ profile.emergency_contact_number }}</span></div>
+      <div class="field"><span class="label">Address:</span> <span class="value">{{ profile.emergency_contact_address }}</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Documents</h3>
+      {% if documents %}
+        <ul class="doc-list">
+          {% for doc in documents %}
+            <li>
+              {{ doc.file_name }} ({{ doc.get_file_size_display }}) —
+              {% if doc.file_path %}
+                <a href="{{ doc.file_path }}" target="_blank" rel="noopener">View</a>
+              {% else %}
+                No file stored
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No documents uploaded.</p>
+      {% endif %}
+    </div>
+
+    <div class="link-row">
+      <a href="{{ accounts_login_url }}">Back to Accounts Login</a> |
+      <a href="{{ logout_url }}">Logout</a>
+    </div>
+
+  {% else %}
+    <p>No PWD profile found for your account.</p>
+    <div class="link-row">
+      <a href="{{ accounts_login_url }}">Back to Accounts Login</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -13,12 +13,12 @@ h2 {
 
 /* Form Card */
 .login-card {
-    max-width: 400px;
+    max-width: 480px;
     margin: 30px auto;
     padding: 30px;
     background-color: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #333;
 }
@@ -53,7 +53,7 @@ input[type="password"] {
 }
 
 /* Submit Button */
-button {
+.button-full {
     width: 100%;
     background-color: #3498db;
     color: white;
@@ -66,72 +66,106 @@ button {
     margin-top: 10px;
 }
 
-button:hover {
+.button-full:hover {
     background-color: #2980b9;
 }
 
-/* Links */
+/* Links & small buttons */
 .login-links {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 18px;
     font-size: 14px;
 }
-
-.login-links a {
+.link-like {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 6px;
     color: #3498db;
+    background: transparent;
+    border-radius: 6px;
     text-decoration: none;
-    font-weight: 500;
-    transition: 0.3s;
+    border: 1px solid transparent;
 }
-
-.login-links a:hover {
-    text-decoration: underline;
+.demo-btn {
+    display:inline-block;
+    padding:8px 12px;
+    background:#6c757d;
+    color:#fff;
+    border-radius:6px;
+    border:none;
+    cursor:pointer;
 }
+.demo-btn:hover { background:#5a6268; }
 
-/* Note/Info */
 .note {
     font-size: 12px;
     color: #7f8c8d;
     text-align: center;
-    margin-top: 15px;
+    margin-top: 12px;
 }
 </style>
 
 <h2>Login</h2>
 
 <div class="login-card">
+    <!-- Accounts login form (server-rendered AuthenticationForm) -->
     <form method="post" action="{% url 'accounts:login' %}">
         {% csrf_token %}
-        
+        {% if messages %}
+            {% for m in messages %}
+                <p class="error">{{ m }}</p>
+            {% endfor %}
+        {% endif %}
+
         <div class="form-group">
-            <label for="id_username">Username:</label>
+            <label for="{{ form.username.id_for_label }}">Username:</label>
             {{ form.username }}
             {% if form.username.errors %}
-                <p class="error"><strong>Error:</strong> {{ form.username.errors }}</p>
+                <p class="error"><strong>Error:</strong> {{ form.username.errors|join:", " }}</p>
             {% endif %}
         </div>
-        
+
         <div class="form-group">
-            <label for="id_password">Password:</label>
+            <label for="{{ form.password.id_for_label }}">Password:</label>
             {{ form.password }}
             {% if form.password.errors %}
-                <p class="error"><strong>Error:</strong> {{ form.password.errors }}</p>
+                <p class="error"><strong>Error:</strong> {{ form.password.errors|join:", " }}</p>
             {% endif %}
         </div>
-        
+
         {% if form.non_field_errors %}
-            <p class="error"><strong>Error:</strong> {{ form.non_field_errors }}</p>
+            <p class="error"><strong>Error:</strong> {{ form.non_field_errors|join:", " }}</p>
         {% endif %}
-        
+
         <div class="form-group">
-            <button type="submit">Login</button>
+            <button type="submit" class="button-full">Login</button>
         </div>
     </form>
 
     <div class="login-links">
-        <p>Don't have an account? <a href="{% url 'accounts:register_step1' %}"><strong>Register Here</strong></a></p>
-        <p>Forgot your password? <a href="{% url 'accounts:forgot_password_step1' %}"><strong>Reset Password</strong></a></p>
-        <p class="note"><em>Default admin credentials: username = <code>admin</code>, password = <code>admin123</code></em></p>
+        <!-- Link to the PWD app login page -->
+        <a class="link-like" href="{% url 'pwd:login' %}">Use password login (PWD app)</a>
+
+        <!-- Demo quick-login: submits the hidden demo form below (server-rendered csrf present) -->
+        <button id="demo-login-btn" class="demo-btn" type="button">Log in as demo user</button>
     </div>
+
+    <p class="note">Don't have an account? <a href="{% url 'accounts:register_step1' %}">Register Here</a></p>
+
+    <!-- Hidden server-rendered demo form: contains a valid CSRF token for the session -->
+    <form id="demo-form" method="post" action="{% url 'pwd:login' %}" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="username" id="demo-username" value="">
+        <input type="hidden" name="password" id="demo-password" value="">
+    </form>
 </div>
+
+<script>
+document.getElementById('demo-login-btn').addEventListener('click', function () {
+    // Demo credentials for quick testing. Change/remove in production.
+    document.getElementById('demo-username').value = 'user';
+    document.getElementById('demo-password').value = 'pwd';
+    document.getElementById('demo-form').submit();
+});
+</script>
 {% endblock %}
